@@ -43,18 +43,29 @@ export const CustomNode = ({ id, data }: NodeProps) => {
           prompt,
         }),
       });
-      const { task } = await res.json();
+      const resData = await res.json();
+      if (!res.ok || !resData.task) {
+        alert(resData.error || "生成请求失败，请稍后重试");
+        setIsGenerating(false);
+        return;
+      }
+      const { task } = resData;
 
       const pollTask = async (taskId: string) => {
         const statusRes = await fetch(`/api/tasks/${taskId}`);
         const statusData = await statusRes.json();
-        
+
+        if (!statusData.task) {
+          setIsGenerating(false);
+          alert("任务状态查询失败，请刷新重试");
+          return;
+        }
+
         if (statusData.task.status === "success") {
           const newResult = statusData.task.resultUrl;
           setResultUrl(newResult);
           updateNodeData(id, { resultUrl: newResult }); // 关键：更新到全局画布状态，让下游节点能读到！
           setIsGenerating(false);
-          window.dispatchEvent(new Event("points-updated"));
         } else if (statusData.task.status === "failed") {
           setIsGenerating(false);
           alert("生成失败");

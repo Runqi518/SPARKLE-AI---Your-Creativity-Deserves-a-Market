@@ -23,6 +23,9 @@ export const CanvasEdgeSchema = z.object({
   id: z.string(),
   source: z.string(),
   target: z.string(),
+  sourceHandle: z.string().nullable().optional(),
+  targetHandle: z.string().nullable().optional(),
+  type: z.string().optional(),
   animated: z.boolean().optional(),
   style: z.record(z.string(), z.unknown()).optional(),
 });
@@ -33,9 +36,14 @@ export const CreateProjectSchema = z.object({
   mode: CreationModeSchema,
   basicType: BasicCreationTypeSchema.optional(),
   templateId: z.number().int().positive().optional(),
+  subjectId: z.string().min(1).optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
+
+export const RenameProjectSchema = z.object({
+  name: z.string().trim().min(1, "Enter a canvas name.").max(50, "Use 50 characters or fewer."),
+});
 
 export const CanvasSnapshotSchema = z.object({
   nodes: z.array(CanvasNodeSchema),
@@ -52,6 +60,7 @@ export const ProjectResponseSchema = z.object({
   updatedAt: z.string().datetime(),
   mode: CreationModeSchema,
   basicType: BasicCreationTypeSchema.optional(),
+  subjectId: z.string().nullable().optional(),
   canvas: CanvasSnapshotSchema,
 });
 

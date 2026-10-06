@@ -30,7 +30,6 @@ export const GenerationTaskSchema = z.object({
   prompt: z.string(),
   resultUrl: z.string().optional(), // 生成成功的媒体地址
   errorMsg: z.string().optional(),
-  cost: z.number(), // 消耗的积分
   createdAt: z.number(),
 });
 export type GenerationTask = z.infer<typeof GenerationTaskSchema>;

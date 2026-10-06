@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body className="h-screen w-screen overflow-hidden bg-sparkle-bg text-sparkle-text">
         {children}
       </body>

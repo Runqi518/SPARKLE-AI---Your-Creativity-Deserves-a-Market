@@ -3,7 +3,7 @@ import {
   CreateProjectInput,
   ProjectResponse,
 } from "../../schemas/project";
-import { Project, Canvas, syncDatabase } from "./db";
+import { Project, Canvas, GenerationJob, Subject, sequelize, syncDatabase } from "./db";
 
 const MAX_PROJECTS = 10;
 
@@ -62,6 +62,7 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectR
   await syncDatabase();
   const count = await Project.count();
   if (count >= MAX_PROJECTS) throw new Error(`项目数量已达上限（${MAX_PROJECTS} 个）`);
+  if (input.subjectId && !await Subject.findByPk(input.subjectId)) throw new Error("Brand subject not found.");
   
   const id = `project_${Date.now()}`;
   const canvasData = initialCanvas(input);
@@ -72,6 +73,7 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectR
     industry: input.industry,
     mode: input.mode,
     basicType: input.basicType || null,
+    subjectId: input.subjectId || null,
     nodesCount: canvasData.nodes.length,
   });
 
@@ -104,9 +106,22 @@ export async function getProjects(): Promise<ProjectResponse[]> {
   return projects.map(p => p.toJSON()) as ProjectResponse[];
 }
 
+export async function renameProject(id: string, name: string) {
+  await syncDatabase();
+  const project = await Project.findByPk(id);
+  if (!project) return null;
+  await project.update({ name });
+  return { id, name: project.get("name") as string };
+}
+
 export async function deleteProject(id: string) {
   await syncDatabase();
-  await Project.destroy({ where: { id } });
+  // Existing SQLite databases predate the cascade constraints in the model.
+  await sequelize.transaction(async transaction => {
+    await GenerationJob.destroy({ where: { projectId: id }, transaction });
+    await Canvas.destroy({ where: { projectId: id }, transaction });
+    await Project.destroy({ where: { id }, transaction });
+  });
 }
 
 export async function saveCanvas(id: string, canvas: CanvasSnapshot) {

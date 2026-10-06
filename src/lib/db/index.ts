@@ -8,19 +8,6 @@ export const sequelize = new Sequelize({
   logging: false,
 });
 
-// User 表 (积分)
-export const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.STRING,
-    primaryKey: true,
-    defaultValue: DataTypes.UUIDV4,
-  },
-  points: {
-    type: DataTypes.INTEGER,
-    defaultValue: 100,
-  }
-});
-
 // Project 表
 export const Project = sequelize.define('Project', {
   id: {
@@ -107,10 +94,6 @@ export const GenerationJob = sequelize.define('GenerationJob', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  cost: {
-    type: DataTypes.INTEGER,
-    defaultValue: 10,
-  }
 });
 
 // Subject 表 (营销标的：商业化的中心枢纽)
@@ -173,12 +156,8 @@ Project.belongsTo(Subject, { foreignKey: 'subjectId' });
 let isSynced = false;
 export async function syncDatabase() {
   if (!isSynced) {
-    await sequelize.sync({ alter: true });
-    // 如果没有用户，初始化一个默认用户 (提供初始积分)
-    const count = await User.count();
-    if (count === 0) {
-      await User.create({ id: 'default_user', points: 100 });
-    }
+    // 表结构已稳定，仅创建缺失的表；alter 模式在 SQLite + 外键下会反复重建表导致迁移卡死
+    await sequelize.sync();
     // Seed 示例营销标的
     const subjectCount = await Subject.count();
     if (subjectCount === 0) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getProject, deleteProject } from "@/lib/projects";
+import { getProject, deleteProject, renameProject } from "@/lib/projects";
+import { RenameProjectSchema } from "../../../../../schemas/project";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,4 +13,13 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   await deleteProject(id);
   return NextResponse.json({ success: true });
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const parsed = RenameProjectSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  const { id } = await params;
+  const project = await renameProject(id, parsed.data.name);
+  if (!project) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  return NextResponse.json({ project });
 }

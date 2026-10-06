@@ -1,32 +1,16 @@
 import { GenerationRequest, GenerationTask } from "../../schemas/task";
 import { updateNodeResult } from "@/lib/projects";
-import { GenerationJob, User, syncDatabase } from "./db";
+import { GenerationJob, syncDatabase } from "./db";
 import { MoyuClient } from "./moyu";
 
 // ----------------- API Services -----------------
 
-// 1. 获取用户当前积分
-export async function getUserPoints(): Promise<number> {
-  await syncDatabase();
-  const user = await User.findByPk('default_user');
-  return user ? (user.toJSON() as any).points : 0;
-}
-
-// 2. 发起 AI 生成任务 (POST /api/tasks/generate)
+// 1. 发起 AI 生成任务 (POST /api/tasks/generate)
 export async function createGenerationTask(req: GenerationRequest): Promise<GenerationTask> {
   await syncDatabase();
-  
-  const cost = 10;
-  const user = await User.findByPk('default_user');
-  const points = user ? (user.toJSON() as any).points : 0;
-  
-  if (points < cost) {
-    throw new Error("积分不足，无法发起生成任务");
-  }
-  await User.update({ points: points - cost }, { where: { id: 'default_user' } });
 
   const taskId = `task_${Date.now()}`;
-  
+
   const newTaskData = {
     id: taskId,
     projectId: req.projectId || "temp_project",
@@ -34,7 +18,6 @@ export async function createGenerationTask(req: GenerationRequest): Promise<Gene
     type: req.type,
     prompt: req.prompt,
     config: req.config,
-    cost,
     status: "pending",
   };
 
@@ -50,7 +33,7 @@ export async function createGenerationTask(req: GenerationRequest): Promise<Gene
   } as unknown as GenerationTask;
 }
 
-// 3. 轮询任务状态 (GET /api/tasks/:id)
+// 2. 轮询任务状态 (GET /api/tasks/:id)
 export async function getTaskStatus(taskId: string): Promise<GenerationTask | null> {
   await syncDatabase();
   const job = await GenerationJob.findByPk(taskId);
@@ -105,8 +88,14 @@ async function dispatchToMoyu(taskId: string, prompt: string, type: string, proj
       }
 
     } else if (type === "video") {
-      // 视频生成 (异步提交 + 轮询)
-      const moyuTaskId = await MoyuClient.submitVideoTask(textPrompt, imageUrl);
+      // 视频生成 (异步提交 + 轮询)，网关余额不足等异常时降级 mock
+      let moyuTaskId: string;
+      try {
+        moyuTaskId = await MoyuClient.submitVideoTask(textPrompt, imageUrl);
+      } catch (e) {
+        console.warn("视频模型调用失败，降级 mock", e);
+        return fallbackMockGeneration(taskId, type, projectId);
+      }
       
       const pollInterval = setInterval(async () => {
         try {

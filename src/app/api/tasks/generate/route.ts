@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GenerationRequestSchema } from "../../../../../schemas/task";
-import { createGenerationTask, getUserPoints } from "@/lib/generation";
+import { createGenerationTask } from "@/lib/generation";
 
 export async function POST(req: Request) {
   try {
@@ -13,10 +13,10 @@ export async function POST(req: Request) {
     }
 
     const task = await createGenerationTask(parsed.data);
-    const remainingPoints = await getUserPoints();
-    
-    return NextResponse.json({ task, remainingPoints }, { status: 200 });
+
+    return NextResponse.json({ task }, { status: 200 });
   } catch (err: any) {
+    console.error("[generate] 500 error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
