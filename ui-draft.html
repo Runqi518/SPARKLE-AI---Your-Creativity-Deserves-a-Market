@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sparkle · UI 草稿（自由画布）</title>
+<style>
+  :root{
+    --bg:#0b0b0f; --panel:rgba(255,255,255,.035); --line:rgba(255,255,255,.10);
+    --line2:rgba(255,255,255,.06); --tx:#e9e9f0; --mut:#8a8a99; --mut2:#5d5d6b;
+    --pink:#ff2d55; --pink-soft:rgba(255,45,85,.12); --ok:#3ddc97; --warn:#ffb020; --blue:#6c8cff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--tx); font:13px/1.6 -apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif; overflow:hidden}
+  button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+  .ph{border:1px dashed var(--line); border-radius:8px; background:rgba(255,255,255,.015); color:var(--mut2); display:flex; align-items:center; justify-content:center; font-size:11px}
+  .btn{border:1px solid var(--line); border-radius:99px; padding:6px 14px; font-size:12px; transition:.15s}
+  .btn:hover{background:rgba(255,255,255,.06)}
+  .btn.primary{background:var(--pink); border-color:var(--pink); color:#fff; font-weight:600}
+  .btn.primary:hover{filter:brightness(1.1)}
+  .btn.ghost{color:var(--mut)}
+  .btn.mini{padding:3px 10px; font-size:11px; border-radius:7px}
+  .tag{font-size:10px; padding:1px 7px; border-radius:99px; border:1px solid var(--line); color:var(--mut)}
+  .tag.pink{color:var(--pink); border-color:rgba(255,45,85,.35); background:var(--pink-soft)}
+  .tag.warn{color:var(--warn); border-color:rgba(255,176,32,.35)}
+  .tag.ok{color:var(--ok); border-color:rgba(61,220,151,.35)}
+  .dot{width:7px;height:7px;border-radius:99px;display:inline-block;flex:none}
+  .dot.done{background:var(--ok)} .dot.run{background:var(--pink)} .dot.wait{background:var(--mut2)}
+
+  /* Landing */
+  #landing{position:fixed; inset:0; overflow-y:auto}
+  .wrap{max-width:1020px; margin:0 auto; padding:0 32px}
+  .nav{display:flex; align-items:center; gap:22px; padding:20px 0; border-bottom:1px solid var(--line2)}
+  .logo{display:flex; align-items:center; gap:8px; font-weight:700; letter-spacing:.3px}
+  .logo i{width:20px;height:20px;border-radius:6px;background:var(--pink);display:grid;place-items:center;font-size:11px;font-style:normal}
+  .nav a{color:var(--mut); font-size:12px; text-decoration:none}
+  .nav a:hover{color:var(--tx)}
+  .nav .sp{flex:1}
+  .hero{padding:90px 0 60px; text-align:center}
+  .hero h1{font-size:40px; line-height:1.25; font-weight:800}
+  .hero h1 em{color:var(--pink); font-style:normal}
+  .hero p{color:var(--mut); margin:16px auto 26px; max-width:520px; font-size:14px}
+  .secure{color:var(--mut2); font-size:11px; letter-spacing:1px; margin-top:34px}
+  .sec{padding:48px 0; border-top:1px solid var(--line2)}
+  .sec h2{font-size:17px; margin-bottom:5px}
+  .sec .sub{color:var(--mut); font-size:12px; margin-bottom:20px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  .card{border:1px solid var(--line); border-radius:12px; padding:14px; background:var(--panel)}
+  .card h4{font-size:12.5px; margin-bottom:6px}
+  .card ul{list-style:none; color:var(--mut); font-size:11.5px}
+  .card li{padding:3px 0}
+  .foot{padding:44px 0 60px; border-top:1px solid var(--line2); text-align:center}
+
+  /* 三档选择 modal */
+  #choices{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:80}
+  .modal{width:680px; background:#14141b; border:1px solid var(--line); border-radius:16px; padding:26px; box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .modal h3{font-size:16px; margin-bottom:4px}
+  .modal .m-sub{color:var(--mut); font-size:12px; margin-bottom:18px}
+  .modes{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  .mode{border:1px solid var(--line); border-radius:12px; padding:16px; text-align:left; transition:.15s; cursor:pointer}
+  .mode:hover{border-color:var(--pink); background:var(--pink-soft)}
+  .mode b{font-size:13.5px; display:block; margin-bottom:6px}
+  .mode .d{color:var(--mut); font-size:11.5px; line-height:1.55}
+  .mode .walk{display:block; margin-top:9px; color:var(--mut2); font-size:10.5px}
+
+  /* 产品三栏 */
+  #product{position:fixed; inset:0; display:none; flex-direction:column}
+  .topbar{height:48px; flex:none; display:flex; align-items:center; gap:12px; padding:0 14px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.35)}
+  .topbar .sep{color:var(--mut2)}
+  .crumb{font-size:12px; color:var(--mut)} .crumb b{color:var(--tx); font-weight:600}
+  .runctl{display:flex; align-items:center; gap:8px}
+  .budget{margin-left:auto; display:flex; align-items:center; gap:13px; font-size:11.5px; color:var(--mut)}
+  .bar{width:110px;height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .bar i{display:block;height:100%;width:41%;background:var(--pink)}
+  .middle{flex:1; display:flex; min-height:0}
+
+  /* 侧栏（可折叠） */
+  .sidebar{width:164px; flex:none; border-right:1px solid var(--line); padding:10px 8px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; transition:margin .2s}
+  .sidebar.closed{margin-left:-164px}
+  .sb-title{font-size:10px; color:var(--mut2); letter-spacing:1px; padding:10px 10px 6px}
+  .sb-item{display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; color:var(--mut); font-size:12.5px; text-align:left; width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.05); color:var(--tx)}
+  .sb-item.active{background:var(--pink-soft); color:#fff}
+  .sb-item .badge{margin-left:auto; font-size:9px; color:var(--mut2)}
+  .divider{height:1px; background:var(--line2); margin:8px 6px}
+  .fold{position:absolute; left:0; top:50%; z-index:5; writing-mode:vertical-rl; font-size:10px; color:var(--mut); padding:8px 4px; border:1px solid var(--line); border-left:none; background:rgba(10,10,16,.8); border-radius:0 6px 6px 0; display:none}
+  .fold.show{display:block}
+
+  /* 画布 */
+  .canvas{flex:1; position:relative; overflow:auto; min-width:0; display:flex; flex-direction:column; background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size:22px 22px}
+  .canvas-scroll{flex:1; position:relative; padding:26px}
+  .addbar{position:absolute; top:14px; left:14px; display:flex; gap:7px; z-index:3}
+  .grid{display:grid; grid-template-columns:repeat(2, minmax(240px, 1fr)); gap:16px; max-width:900px; margin-top:30px}
+  .fw{border:1px solid var(--line); border-radius:12px; background:rgba(18,18,24,.9); overflow:hidden}
+  .fw .hd{display:flex; align-items:center; gap:8px; padding:9px 12px; border-bottom:1px solid var(--line2); font-size:12px}
+  .fw .hd .type{color:var(--mut); font-size:11px}
+  .fw .body{height:100px; position:relative}
+  .fw .foot{display:flex; gap:7px; padding:8px 10px; border-top:1px solid var(--line2)}
+  .scale{position:absolute; right:10px; bottom:10px; font-size:10px; color:var(--mut2)}
+
+  /* 终剪时间轴（常驻，强调可编辑） */
+  .timeline{flex:none; border-top:1px solid var(--line); background:rgba(0,0,0,.3)}
+  .tl-hd{display:flex; align-items:center; gap:10px; padding:8px 14px; font-size:12px; border-bottom:1px solid var(--line2)}
+  .tl-hd .hint{color:var(--pink); font-size:11px}
+  .tracks{padding:8px 14px 12px; display:flex; flex-direction:column; gap:5px}
+  .track{display:flex; align-items:center; gap:10px; font-size:10.5px; color:var(--mut)}
+  .track .nm{width:56px; flex:none; text-align:right}
+  .track .lane{flex:1; height:22px; border-radius:5px; position:relative; overflow:hidden; background:rgba(255,255,255,.04); display:flex}
+  .seg{height:100%; border-radius:4px; display:flex; align-items:center; padding:0 6px; font-size:9px; color:rgba(255,255,255,.85); border:1px solid rgba(255,255,255,.18)}
+  .seg.v{background:#3a3f5c} .seg.g{background:#6c4a7f} .seg.t{background:#3f6b52} .seg.a{background:#8a6a3f} .seg.b{background:#7f4a52}
+  .ed-note{font-size:9.5px; color:var(--mut2); margin-left:6px}
+
+  /* Agent 对话栏（可折叠） */
+  .chat{width:372px; flex:none; border-left:1px solid var(--line); display:flex; flex-direction:column; background:rgba(0,0,0,.25); transition:margin .2s}
+  .chat.closed{margin-right:-372px}
+  .chat .ctx{flex:none; padding:8px 12px; border-bottom:1px solid var(--line2); display:flex; flex-direction:column; gap:7px}
+  .ag-select{position:relative}
+  .ag-btn{width:100%; border:1px solid var(--line); border-radius:8px; padding:6px 11px; font-size:12px; text-align:left; color:var(--tx); display:flex; justify-content:space-between; align-items:center}
+  .ag-menu{position:absolute; top:100%; left:0; right:0; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:#181820; z-index:20; display:none; overflow:hidden}
+  .ag-menu.open{display:block}
+  .ag-menu .it{padding:7px 11px; font-size:12px; cursor:pointer}
+  .ag-menu .it:hover{background:var(--pink-soft)}
+  .ag-menu .grp{font-size:9.5px; color:var(--mut2); letter-spacing:1px; padding:6px 11px 2px}
+  .msgs{flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px}
+  .msg{display:flex; gap:9px}
+  .msg .bd{flex:1; min-width:0}
+  .msg .who{font-size:10px; color:var(--mut2); margin-bottom:3px}
+  .bubble{border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:9px 11px; font-size:12px}
+  .bubble.plain{border:none; background:none; padding:2px 0}
+  .cands{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px 0}
+  .cand .th{height:46px; border-radius:6px}
+  .cand .sc{font-size:10px; color:var(--mut); margin-top:4px; display:flex; justify-content:space-between}
+  .composer{flex:none; border-top:1px solid var(--line); padding:10px 12px}
+  .input{border:1px solid var(--line); border-radius:10px; padding:9px 11px; color:var(--mut2); font-size:12px}
+
+  /* 抽屉 */
+  #drawer{position:fixed; top:48px; right:0; bottom:0; width:440px; background:#111117; border-left:1px solid var(--line); display:none; flex-direction:column; z-index:40}
+  .dr-hd{flex:none; padding:13px 16px; border-bottom:1px solid var(--line2); display:flex; align-items:center; gap:8px}
+  .dr-hd h3{font-size:13.5px} .dr-hd .sp{margin-left:auto}
+  .dr-bd{flex:1; overflow-y:auto; padding:14px 16px}
+  .row{display:flex; gap:10px; padding:11px; border:1px solid var(--line); border-radius:10px; margin-bottom:9px; align-items:center}
+  .row:hover{border-color:rgba(255,255,255,.22)}
+  .row .th{width:52px;height:38px;border-radius:7px;flex:none}
+  .row .meta{flex:1; min-width:0}
+  .row .meta b{font-size:12px; display:block}
+  .row .meta small{color:var(--mut); font-size:11px}
+
+  /* 独立页 */
+  #page{position:fixed; inset:0; background:var(--bg); display:none; flex-direction:column; z-index:50}
+  .pg-hd{flex:none; height:48px; display:flex; align-items:center; gap:12px; padding:0 16px; border-bottom:1px solid var(--line)}
+  .pg-bd{flex:1; overflow-y:auto; padding:22px 26px}
+  .pg-bd h2{font-size:17px; margin-bottom:4px}
+  .pg-bd .sub{color:var(--mut); font-size:12px; margin-bottom:18px}
+  .tbl{width:100%; border-collapse:collapse; font-size:12px}
+  .tbl th{text-align:left; color:var(--mut2); font-weight:500; font-size:10.5px; letter-spacing:.6px; padding:8px 10px; border-bottom:1px solid var(--line2)}
+  .tbl td{padding:11px 10px; border-bottom:1px solid var(--line2)}
+  .tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+  .note{position:fixed; left:50%; transform:translateX(-50%); bottom:22px; z-index:99; background:#17171f; border:1px solid var(--line); border-radius:10px; padding:10px 16px; font-size:12px; display:flex; align-items:center; gap:9px; opacity:0; pointer-events:none; transition:.25s}
+  .note.show{opacity:1; transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+
+<!-- Landing -->
+<div id="landing">
+  <div class="wrap">
+    <div class="nav">
+      <span class="logo"><i>S</i>Sparkle</span>
+      <span class="sp"></span>
+      <a href="#" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">功能</a>
+      <a href="#" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'})">能力</a>
+      <a href="#" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'})">生态</a>
+      <button class="btn primary" onclick="openChoices()">开始创作</button>
+    </div>
+    <div class="hero">
+      <h1>给一个<em>要推广的东西</em>，<br/>自动做出一条可随时修改的广告</h1>
+      <p>从商品、活动到知识内容，AI 把它从脚本做到成片；做完不是死的视频，而是一份随时能改的工程。</p>
+      <button class="btn primary" onclick="openChoices()">开始创作</button>
+      <div class="secure">即梦 · Seedream · Kling · Vidu · MiniMax · 通义万相 · 混元</div>
+    </div>
+    <div class="sec" id="s1">
+      <h2>功能</h2><div class="sub">围绕一个核心，能做的几件事</div>
+      <div class="grid3">
+        <div class="card"><h4>自动做成片</h4><ul><li>一个标的，一条流程</li><li>脚本、分镜、镜头、声音</li><li>中间随时可改</li></ul></div>
+        <div class="card"><h4>模板创作</h4><ul><li>上传参考，拉片复刻</li><li>换成自己的产品</li></ul></div>
+        <div class="card"><h4>内容找货</h4><ul><li>做好的内容自动匹配品牌</li><li>模板上架，作者分成</li></ul></div>
+      </div>
+    </div>
+    <div class="sec" id="s2">
+      <h2>能力</h2><div class="sub">靠什么做到</div>
+      <div class="grid3">
+        <div class="card"><h4>多 Agent 分工</h4><ul><li>不只一个 Prompt 出一个视频</li><li>一致性和产品保真</li></ul></div>
+        <div class="card"><h4>可编辑工程</h4><ul><li>多轨时间轴</li><li>文字、图表、数据都能改</li></ul></div>
+        <div class="card"><h4>成本可控</h4><ul><li>先审关键帧再渲染</li><li>改局部不整条重做</li></ul></div>
+      </div>
+    </div>
+    <div class="sec" id="s3">
+      <h2>生态</h2><div class="sub">怎么流通，怎么赚钱</div>
+      <div class="grid3">
+        <div class="card"><h4>模板市场</h4><ul><li>流程打包上架</li><li>按次或买断</li></ul></div>
+        <div class="card"><h4>素材授权</h4><ul><li>成片、镜头、角色可授权</li></ul></div>
+        <div class="card"><h4>创意悬赏</h4><ul><li>品牌出钱，创作者投稿</li></ul></div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn primary" onclick="openChoices()">开始创作</button>
+      <div class="secure" style="margin-top:18px">创意无界，增长有形 · From Prompt to Profit</div>
+    </div>
+  </div>
+</div>
+
+<!-- 三档选择 -->
+<div id="choices">
+  <div class="modal">
+    <h3>从哪开始？</h3>
+    <div class="m-sub">先选一条路，进去之后每一步都能改。</div>
+    <div class="modes">
+      <div class="mode" onclick="pick('template')">
+        <b>模板创作</b>
+        <div class="d">上传一条参考广告，或挑一个模板，系统拆解它的节奏和镜头，换成你的内容。</div>
+        <span class="walk">拉片复刻从这里进</span>
+      </div>
+      <div class="mode" onclick="pick('basic')">
+        <b>基础创作</b>
+        <div class="d">一句话生成视频、上传一张图让它动起来，或对已有视频做编辑。</div>
+        <span class="walk">文生视频 · 图生视频 · 编辑</span>
+      </div>
+      <div class="mode" onclick="pick('free')">
+        <b>自由创作</b>
+        <div class="d">进到空白画布，自己加文本、图片、视频、音频，想怎么做就怎么做。</div>
+        <span class="walk">剪辑在画布里完成</span>
+      </div>
+    </div>
+    <div style="margin-top:16px; text-align:right"><button class="btn ghost" onclick="closeChoices()">取消</button></div>
+  </div>
+</div>
+
+<!-- 产品 -->
+<div id="product">
+  <div class="topbar">
+    <span class="logo"><i>S</i>Sparkle</span>
+    <span class="sep">·</span>
+    <span class="crumb">空间：<b>我的空间</b></span>
+    <span class="sep">·</span>
+    <span class="crumb">项目：<b>自由创作 · 未命名</b></span>
+    <span class="runctl" style="margin-left:18px">
+      <button class="btn primary" onclick="toast('开始生成')">生成</button>
+      <button class="btn ghost" onclick="toast('已暂停')">暂停</button>
+      <button class="btn ghost" onclick="toast('模式：按节点确认')">模式</button>
+    </span>
+    <span class="budget">
+      <span>预算 <span class="bar"><i></i></span> 0 / 3,000 点</span>
+      <span>钱包 5,600 点</span>
+      <span class="btn ghost" style="padding:3px 10px" onclick="toast('账户菜单')">头像</span>
+    </span>
+  </div>
+
+  <div class="middle">
+    <!-- 侧栏 -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sb-title">创作</div>
+      <button class="sb-item active" onclick="goCanvas()">画布</button>
+      <button class="sb-item" onclick="openDrawer('subjects')">营销标的<span class="badge">抽屉</span></button>
+      <button class="sb-item" onclick="openDrawer('assets')">素材库<span class="badge">抽屉</span></button>
+      <div class="divider"></div>
+      <div class="sb-title">交易</div>
+      <button class="sb-item" onclick="openPage('market')">模板市场</button>
+      <button class="sb-item" onclick="openPage('bounty')">创意悬赏</button>
+      <button class="sb-item" onclick="openPage('orders')">收益订单</button>
+      <div class="divider"></div>
+      <div class="sb-title">账户</div>
+      <button class="sb-item" onclick="openDrawer('wallet')">钱包</button>
+      <button class="sb-item" onclick="toast('设置')">设置</button>
+      <div class="divider"></div>
+      <button class="sb-item" onclick="toggleSidebar()">收起侧栏</button>
+    </nav>
+    <button class="fold" id="fold" onclick="toggleSidebar()">侧栏</button>
+
+    <!-- 画布 -->
+    <main class="canvas">
+      <div class="canvas-scroll">
+        <div class="addbar">
+          <button class="btn mini" onclick="addCard('text')">添加文本</button>
+          <button class="btn mini" onclick="addCard('image')">添加图片</button>
+          <button class="btn mini" onclick="addCard('video')">添加视频</button>
+          <button class="btn mini" onclick="addCard('audio')">添加音频</button>
+        </div>
+        <div class="grid" id="grid">
+          <div class="fw" data-type="text">
+            <div class="hd"><b>脚本</b><span class="type">文本</span><span class="dot done"></span></div>
+            <div class="body ph">PAS 结构 · 58 字口播</div>
+            <div class="foot">
+              <button class="btn mini ghost" onclick="toast('编辑这段文本')">编辑</button>
+              <button class="btn mini ghost" onclick="toast('添加素材到这一段')">添加素材</button>
+              <button class="btn mini ghost" onclick="toast('已把这段发给 AI 处理')">问 AI</button>
+            </div>
+          </div>
+          <div class="fw" data-type="image">
+            <div class="hd"><b>主视觉</b><span class="type">图片</span><span class="dot done"></span></div>
+            <div class="body ph">关键帧 · 9:16</div>
+            <div class="foot">
+              <button class="btn mini ghost" onclick="toast('编辑图片')">编辑</button>
+              <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
+              <button class="btn mini ghost" onclick="toast('把这张图发给 AI 修改')">问 AI</button>
+            </div>
+          </div>
+          <div class="fw" data-type="video">
+            <div class="hd"><b>镜头</b><span class="type">视频</span><span class="dot run"></span></div>
+            <div class="body ph">第 1 镜 · hook · 1.2 秒</div>
+            <div class="foot">
+              <button class="btn mini ghost" onclick="toast('编辑这段视频')">编辑</button>
+              <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
+              <button class="btn mini ghost" onclick="toast('把这段视频发给 AI 修改')">问 AI</button>
+            </div>
+          </div>
+          <div class="fw" data-type="audio">
+            <div class="hd"><b>背景音乐</b><span class="type">音频</span><span class="dot wait"></span></div>
+            <div class="body ph">BPM 120 · 都市电子</div>
+            <div class="foot">
+              <button class="btn mini ghost" onclick="toast('编辑音频')">编辑</button>
+              <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
+              <button class="btn mini ghost" onclick="toast('把这段音频发给 AI 修改')">问 AI</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:18px; font-size:10.5px; color:var(--mut2)">画布上每个框都是一份可编辑内容；点「问 AI」把它交给右侧对话处理，改完只更新这一处。</div>
+      </div>
+
+      <!-- 终剪时间轴（常驻，强调可编辑） -->
+      <div class="timeline" id="timeline">
+        <div class="tl-hd">
+          <b>终剪时间轴</b>
+          <span class="hint">每一步都可双击修改，改完不用重新生成</span>
+          <span class="sp" style="flex:1"></span>
+          <button class="btn mini ghost" onclick="toggleTimeline()">收起</button>
+        </div>
+        <div class="tracks">
+          <div class="track"><span class="nm">视频</span><div class="lane"><div class="seg v" style="flex:2">开场</div><div class="seg v" style="flex:3">产品镜头</div><div class="seg v" style="flex:2">收尾</div></div><span class="ed-note">双击替换片段</span></div>
+          <div class="track"><span class="nm">图形</span><div class="lane"><div class="seg g" style="flex:1.4">卖点贴片</div><div class="seg g" style="flex:1">价格</div></div><span class="ed-note">双击改数字和颜色</span></div>
+          <div class="track"><span class="nm">字幕</span><div class="lane"><div class="seg t" style="flex:2.5">字幕条</div></div><span class="ed-note">双击改字</span></div>
+          <div class="track"><span class="nm">配音</span><div class="lane"><div class="seg a" style="flex:2.5">口播</div></div><span class="ed-note">只重灌这一轨</span></div>
+          <div class="track"><span class="nm">音乐</span><div class="lane"><div class="seg b" style="flex:3">BGM</div></div><span class="ed-note">拖拽对齐</span></div>
+        </div>
+      </div>
+      <button class="btn mini ghost" id="tlopen" style="display:none" onclick="toggleTimeline()">打开时间轴</button>
+    </main>
+
+    <!-- Agent 对话栏 -->
+    <aside class="chat" id="chat">
+      <div class="ctx">
+        <b style="font-size:11px">交给谁做</b>
+        <div class="ag-select">
+          <button class="ag-btn" onclick="toggleAgMenu()">选择 Agent 或 Skill <span style="color:var(--mut2)">▾</span></button>
+          <div class="ag-menu" id="agmenu">
+            <div class="grp">Agent</div>
+            <div class="it" onclick="pickAgent('创意总监')">创意总监</div>
+            <div class="it" onclick="pickAgent('编剧')">编剧</div>
+            <div class="it" onclick="pickAgent('产品视觉')">产品视觉</div>
+            <div class="it" onclick="pickAgent('角色设计')">角色设计</div>
+            <div class="it" onclick="pickAgent('场景设计')">场景设计</div>
+            <div class="it" onclick="pickAgent('分镜设计')">分镜设计</div>
+            <div class="it" onclick="pickAgent('视频导演')">视频导演</div>
+            <div class="it" onclick="pickAgent('音效导演')">音效导演</div>
+            <div class="it" onclick="pickAgent('终剪合成')">终剪合成</div>
+            <div class="grp">Skill</div>
+            <div class="it" onclick="pickAgent('动态图形')">动态图形</div>
+            <div class="it" onclick="pickAgent('拉片复刻')">拉片复刻</div>
+            <div class="it" onclick="pickAgent('字幕校对')">字幕校对</div>
+          </div>
+        </div>
+        <button class="btn mini ghost" style="text-align:center" onclick="toggleChat()">收起对话</button>
+      </div>
+      <div class="msgs">
+        <div class="msg"><div class="bd">
+          <div class="who">编剧</div>
+          <div class="bubble plain">脚本已经生成一版，时长 58 字、结构 PAS。要改哪一句，直接说，或点画布上「脚本」卡片的「编辑」。</div>
+        </div></div>
+        <div class="msg"><div class="bd">
+          <div class="who">视频导演 · 第 1 镜</div>
+          <div class="bubble">出 3 个候选，第 2 个综合分最高，已标记为待你确认。</div>
+          <div class="cands">
+            <div class="cand"><div class="th ph">候选 1</div><div class="sc"><span>0.71</span><span>形变</span></div></div>
+            <div class="cand"><div class="th ph" style="border-color:var(--pink)">候选 2</div><div class="sc"><span style="color:var(--ok)">0.92</span><span>推荐</span></div></div>
+            <div class="cand"><div class="th ph">候选 3</div><div class="sc"><span>0.80</span><span>偏暗</span></div></div>
+          </div>
+        </div></div>
+      </div>
+      <div class="composer">
+        <div class="input">告诉 AI 要改哪里…</div>
+      </div>
+    </aside>
+    <button class="fold" id="chatfold" style="right:0; left:auto; border-right:none; border-left:1px solid var(--line); border-radius:6px 0 0 6px" onclick="toggleChat()">对话</button>
+  </div>
+</div>
+
+<!-- 抽屉 -->
+<div id="drawer">
+  <div class="dr-hd">
+    <h3 id="dr-title">抽屉</h3>
+    <span class="tag" style="margin-left:6px">浏览用，画布不关</span>
+    <span class="sp"></span>
+    <button class="btn ghost" onclick="closeDrawer()">关闭</button>
+  </div>
+  <div class="dr-bd" id="dr-body"></div>
+</div>
+
+<!-- 独立页 -->
+<div id="page">
+  <div class="pg-hd">
+    <button class="btn ghost" onclick="closePage()">返回画布</button>
+    <span class="crumb" id="pg-crumb"></span>
+    <span class="tag" style="margin-left:8px">会产生记录，画布后台继续</span>
+  </div>
+  <div class="pg-bd" id="pg-body"></div>
+</div>
+
+<div class="note" id="note"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let noteTimer;
+  function toast(t){
+    const n=$('note'); n.innerHTML='<span class="dot run"></span>'+t;
+    n.classList.add('show'); clearTimeout(noteTimer);
+    noteTimer=setTimeout(()=>n.classList.remove('show'),2600);
+  }
+
+  function openChoices(){ $('choices').style.display='flex'; }
+  function closeChoices(){ $('choices').style.display='none'; }
+  function pick(mode){
+    closeChoices();
+    $('landing').style.display='none';
+    $('product').style.display='flex';
+    const map={template:'模板创作', basic:'基础创作', free:'自由创作'};
+    toast('进入画布 · 来源：'+map[mode]);
+  }
+
+  function toggleSidebar(){
+    const s=$('sidebar'), f=$('fold');
+    const closed=s.classList.toggle('closed');
+    f.classList.toggle('show', closed);
+  }
+  function toggleChat(){
+    $('chat').classList.toggle('closed');
+    $('chatfold').classList.toggle('show');
+  }
+  function toggleTimeline(){
+    const t=$('timeline'), o=$('tlopen');
+    const hide=t.style.display==='none';
+    t.style.display=hide?'':'none';
+    o.style.display=hide?'none':'block';
+  }
+  function toggleAgMenu(){ $('agmenu').classList.toggle('open'); }
+  function pickAgent(name){
+    $('agmenu').classList.remove('open');
+    toast('已选择 '+name+'，下面的指令都交给他');
+  }
+
+  function addCard(type){
+    const titles={text:['文字内容','文本'],image:['图片','图片'],video:['视频片段','视频'],audio:['音频片段','音频']};
+    const [t,ty]=titles[type];
+    const d=document.createElement('div'); d.className='fw'; d.dataset.type=type;
+    d.innerHTML=`<div class="hd"><b>${t}</b><span class="type">${ty}</span><span class="dot wait"></span></div>
+      <div class="body ph">新添加的${ty.toLowerCase()==='文本'?'内容':ty}</div>
+      <div class="foot">
+        <button class="btn mini ghost" onclick="toast('编辑')">编辑</button>
+        <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
+        <button class="btn mini ghost" onclick="toast('把这段发给 AI')">问 AI</button>
+      </div>`;
+    $('grid').appendChild(d);
+    toast('已添加 '+ty);
+  }
+
+  function goCanvas(){ closeDrawer(); closePage(); }
+
+  const DRAWER={
+    subjects:{title:'营销标的', body:`
+      <button class="btn primary" style="width:100%; margin-bottom:12px" onclick="fromDrawer('标的 → 一键生成')">新建标的，一键生成</button>
+      <div class="row"><div class="th ph">图</div><div class="meta"><b>Nike Air Max 春季上新</b><small>product · 3 个卖点</small></div><button class="btn mini" onclick="fromDrawer('标的 → 生成')">生成</button></div>
+      <div class="row"><div class="th ph">图</div><div class="meta"><b>618 品牌大促</b><small>campaign</small></div><button class="btn mini" onclick="fromDrawer('标的 → 生成')">生成</button></div>`},
+    assets:{title:'素材库', body:`
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px">
+        ${['角色','场景','镜头','成片','音乐','音色'].map(t=>`<div class="ph" style="height:74px" onclick="fromDrawer('素材 → 插入画布')">${t}</div>`).join('')}
+      </div>
+      <div class="ph" style="height:50px; margin-top:10px">点一个素材，插入到当前画布</div>`},
+    wallet:{title:'钱包', body:`
+      <div class="card" style="margin-bottom:12px"><h4>点数</h4>
+        <div style="font-size:24px; font-weight:800; margin:6px 0">5,600 <span style="font-size:12px; color:var(--mut)">点</span></div>
+        <button class="btn primary mini" onclick="toast('充值')">充值</button></div>
+      <div class="row"><div class="meta"><b>现金账户</b><small>可提现 1,280（人民币）</small></div></div>`}
+  };
+  function openDrawer(kind){
+    closePage();
+    const d=DRAWER[kind]; if(!d) return;
+    $('dr-title').textContent=d.title; $('dr-body').innerHTML=d.body;
+    $('drawer').style.display='flex';
+  }
+  function closeDrawer(){ $('drawer').style.display='none'; }
+  function fromDrawer(payload){ closeDrawer(); toast('已回画布 · '+payload); }
+
+  function openPage(kind){
+    closeDrawer();
+    $('page').style.display='flex';
+    if(kind==='market'){
+      $('pg-crumb').textContent='模板市场';
+      $('pg-body').innerHTML=`<h2>模板市场</h2><div class="sub">把别人跑通的流程拿来用，换成自己的内容</div>
+        <div class="row"><div class="th ph">模板</div><div class="meta"><b>电商爆款三件套</b><small>官方 · 1,286 次使用 · 免费</small></div><button class="btn primary mini" onclick="fromPage2('模板 → 新建画布')">使用</button></div>
+        <div class="row"><div class="th ph">模板</div><div class="meta"><b>游戏买量裂变流</b><small>19 一次 · 中位点击率 3.1%</small></div><button class="btn primary mini" onclick="fromPage2('模板 → 新建画布')">使用</button></div>`;
+    }
+    if(kind==='bounty'){
+      $('pg-crumb').textContent='创意悬赏';
+      $('pg-body').innerHTML=`<h2>创意悬赏</h2><div class="sub">品牌出钱，创作者投稿</div>
+        <table class="tbl">
+          <tr><th>悬赏</th><th>标的</th><th>预算</th><th>截止</th><th></th></tr>
+          <tr><td>春季跑鞋种草短视频</td><td>Nike Air Max 春季上新</td><td>3,000</td><td>3 天</td><td style="text-align:right"><button class="btn primary mini" onclick="fromPage2('悬赏 → 新建画布')">接单</button></td></tr>
+        </table>`;
+    }
+    if(kind==='orders'){
+      $('pg-crumb').textContent='收益订单';
+      $('pg-body').innerHTML=`<h2>收益订单</h2><div class="sub">点数账户与现金账户分开记</div>
+        <table class="tbl">
+          <tr><th>订单</th><th>类型</th><th>金额</th><th>状态</th></tr>
+          <tr><td>电商爆款三件套</td><td>模板使用费</td><td>+19.00</td><td><span class="tag warn">结算中</span></td></tr>
+          <tr><td>春季跑鞋短视频授权</td><td>素材授权</td><td>+199.00</td><td><span class="tag ok">已结算</span></td></tr>
+        </table>`;
+    }
+  }
+  function closePage(){ $('page').style.display='none'; }
+  function fromPage2(payload){ closePage(); toast('已回画布 · '+payload); }
+</script>
+</body>
+</html>

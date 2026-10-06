@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id     String @id @default(cuid())
+  points Int    @default(100)
+}
+
+model Project {
+  id         String          @id @default(cuid())
+  name       String
+  industry   String
+  mode       String          // template, basic, free
+  basicType  String?         // t2v, i2v, edit
+  nodesCount Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  canvas     Canvas?
+  jobs       GenerationJob[]
+}
+
+model Canvas {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String   @unique
+  nodes     String   // 存储为 JSON 字符串
+  edges     String   // 存储为 JSON 字符串
+  updatedAt DateTime @updatedAt
+}
+
+model GenerationJob {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  nodeId    String
+  type      String
+  prompt    String
+  config    String?  // 存储为 JSON 字符串
+  status    String   @default("pending") // pending, processing, success, failed
+  resultUrl String?
+  cost      Int      @default(10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  type      String
+  url       String
+  createdAt DateTime @default(now())
+}
