@@ -1,5 +1,7 @@
 # Sparkle · AI 创意营销素材工坊
 
+实际运行、数据库、备份恢复与 API 接入状态见 [后端运行说明](docs/backend-readiness.md)。下文包含产品规划，不代表所有规划能力已经上线。
+
 > **创意无界，增长有形。**
 > *Boundless ideas. Tangible growth.*
 

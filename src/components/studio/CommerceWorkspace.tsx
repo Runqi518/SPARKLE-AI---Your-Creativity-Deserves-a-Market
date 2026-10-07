@@ -13,6 +13,7 @@ import {
   Search,
   Upload,
   X,
+  Trash2,
 } from "lucide-react";
 import { StudioShell } from "./StudioShell";
 import { Dialog } from "./Dialog";
@@ -23,14 +24,14 @@ import {
   newProject,
   templates,
   readLocal,
-  storeLocal,
   request,
   type Template as MarketTemplate,
-  type Order,
   type LibraryAsset,
   type StudioNode,
 } from "./data";
+import { adLayers, templateIndustries } from "./campaign-templates";
 import "./marketspace.css";
+import { OrdersWorkspace } from "./OrdersWorkspace";
 
 type OwnWork = { template: MarketTemplate; saved: boolean };
 type ProjectSummary = { id: string; name: string };
@@ -42,15 +43,19 @@ type Subject = {
   brief: string;
   sellingPoints: string[];
   targetAudience: string;
+  rewardCents?: number;
 };
 const titles: Record<string, { name: string; description: string }> = {
-  market: { name: "Templates", description: "Browse workflows and manage your templates; purchases are demos." },
+  market: { name: "Templates", description: "Premium campaign references and editable ad workflows." },
   subjects: { name: "Bounties", description: "Post a product brief or choose one to start an ad project." },
-  orders: { name: "Orders", description: "Your demo template purchases and creative activity." },
   assets: { name: "My assets", description: "" },
 };
 
-export function CommerceWorkspace({
+export function CommerceWorkspace(props: { section: string; marketView?: "store" | "own" }) {
+  return props.section === "orders" ? <OrdersWorkspace /> : <CatalogWorkspace {...props} />;
+}
+
+function CatalogWorkspace({
   section,
   marketView = "store",
 }: {
@@ -60,19 +65,24 @@ export function CommerceWorkspace({
   const router = useRouter();
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
+  const [industry, setIndustry] = useState("All industries");
+  const [visualStyle, setVisualStyle] = useState("All styles");
   const [savedTemplates, setSavedTemplates] = useLocalValue<MarketTemplate[]>(
     "sparkle:templates",
     [],
   );
   // Templates saved before publication states existed were explicitly published.
-  const allTemplates: MarketTemplate[] = [...templates, ...savedTemplates];
+  const [publishedTemplates, setPublishedTemplates] = useState<MarketTemplate[]>([]);
+  const allTemplates: MarketTemplate[] = [...templates, ...savedTemplates, ...publishedTemplates.filter(template => !savedTemplates.some(own => own.id === template.id))];
+  useEffect(() => { if (section === "market") void request<{ templates: MarketTemplate[] }>("/api/templates/catalog").then(result => setPublishedTemplates(result.templates)); }, [section]);
   const catalog = allTemplates.filter((template) => template.published !== false);
   const [detail, setDetail] = useState<MarketTemplate | null>(null);
   const [editingWork, setEditingWork] = useState<OwnWork | null>(null);
   const [matchingWork, setMatchingWork] = useState<MarketTemplate | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [createSubject, setCreateSubject] = useState(false);
-  const [orders, setOrders] = useLocalValue<Order[]>("sparkle:orders", []);
+  const claimAttempt = useRef<{ subjectId: string; requestId: string; paymentRequestId?: string } | null>(null);
+  const pendingPurchase = useRef<{ templateId: string; projectId: string; requestId: string; paymentRequestId?: string } | null>(null);
   const [assets, setAssets] = useLocalValue<LibraryAsset[]>(
     "sparkle:assets",
     [],
@@ -81,6 +91,7 @@ export function CommerceWorkspace({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<LibraryAsset | null>(null);
+  const [assetToDelete, setAssetToDelete] = useState<LibraryAsset | null>(null);
   const [projectPicker, setProjectPicker] = useState(false);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
@@ -89,6 +100,11 @@ export function CommerceWorkspace({
   const [subjectsLoaded, setSubjectsLoaded] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const title = titles[section] || titles.market;
+  useEffect(() => {
+    const listener = (event: Event) => setError((event as CustomEvent<string>).detail);
+    window.addEventListener("sparkle-sync-error", listener);
+    return () => window.removeEventListener("sparkle-sync-error", listener);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -161,31 +177,38 @@ export function CommerceWorkspace({
   }
   async function applyTemplate(template: MarketTemplate) {
     await run(async () => {
-      const id = await newProject(
+      const id = pendingPurchase.current?.templateId === template.id ? pendingPurchase.current.projectId : await newProject(
         "template",
         template.name.slice(0, 50),
-        template.nodes || exampleNodes(),
+        (template as MarketTemplate & { requiresPurchase?: boolean }).requiresPurchase ? [] : template.nodes || exampleNodes(),
         "t2v",
         undefined,
-        template.edges ?? (template.nodes ? [] : exampleEdges()),
+        (template as MarketTemplate & { requiresPurchase?: boolean }).requiresPurchase ? [] : template.edges ?? (template.nodes ? [] : exampleEdges()),
       );
       if (template.price > 0) {
-        const order: Order = {
-          id: crypto.randomUUID(),
-          name: template.name,
-          amount: template.price,
-          kind: "Demo template purchase",
-          date: new Date().toISOString(),
-        };
-        const next = [...readLocal<Order[]>("sparkle:orders", []), order];
-        storeLocal("sparkle:orders", next);
-        setOrders(next);
+        if (pendingPurchase.current?.projectId !== id) pendingPurchase.current = { templateId: template.id, projectId: id, requestId: crypto.randomUUID() };
+        const { order } = await request<{ order: { id: string } }>("/api/orders", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "template_purchase", requestId: pendingPurchase.current.requestId, projectId: id, templateId: template.id, name: template.name, amountCents: Math.round(template.price * 100) }),
+        });
+        if ((template as MarketTemplate & { requiresPurchase?: boolean }).requiresPurchase && pendingPurchase.current) {
+          pendingPurchase.current.paymentRequestId ||= crypto.randomUUID();
+          const { payment } = await request<{ payment: { checkoutUrl: string } }>("/api/payments/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id, requestId: pendingPurchase.current.paymentRequestId }) });
+          if (!payment.checkoutUrl) throw new Error("Checkout is unresolved. Keep this payment request and check Orders before trying again.");
+          location.assign(payment.checkoutUrl); return;
+        }
+        pendingPurchase.current = null;
       }
       router.push(`/project/${id}`);
     });
   }
   async function fromSubject(subject: Subject) {
     await run(async () => {
+      if (subject.rewardCents) {
+        if (claimAttempt.current?.subjectId !== subject.id) claimAttempt.current = { subjectId: subject.id, requestId: crypto.randomUUID() };
+        const { commission } = await request<{ commission: { projectId: string } }>(`/api/subjects/${subject.id}/claim`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: claimAttempt.current.requestId }) });
+        claimAttempt.current = null; router.push(`/project/${commission.projectId}`); return;
+      }
       const nodes: StudioNode[] = [
         {
           id: crypto.randomUUID(),
@@ -228,6 +251,7 @@ export function CommerceWorkspace({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          rewardCents: Math.round(Number(data.get("reward") || 0) * 100),
           name: data.get("name"),
           type: data.get("type"),
           brief: data.get("brief"),
@@ -252,8 +276,7 @@ export function CommerceWorkspace({
         body: form,
       });
       const next = [...readLocal<LibraryAsset[]>("sparkle:assets", []), asset];
-      storeLocal("sparkle:assets", next);
-      setAssets(next);
+      await setAssets(next);
       setNotice("Your asset is ready to use.");
     });
     if (fileInput.current) fileInput.current.value = "";
@@ -266,6 +289,17 @@ export function CommerceWorkspace({
       setProjects(data.projects);
       setProjectPicker(true);
     });
+  }
+  function removeAsset() {
+    if (!assetToDelete) return;
+    try {
+      void setAssets(readLocal<LibraryAsset[]>("sparkle:assets", []).filter(asset => asset.id !== assetToDelete.id)).catch(e => setError(e.message));
+      if (selectedAsset?.id === assetToDelete.id) { setSelectedAsset(null); setProjectPicker(false); }
+      setAssetToDelete(null);
+      setNotice("Asset removed from My assets.");
+    } catch {
+      setError("Could not remove this asset. Try again.");
+    }
   }
   async function addToProject(projectId?: string) {
     if (!selectedAsset) return;
@@ -286,7 +320,7 @@ export function CommerceWorkspace({
         ]);
       else {
         const { project } = await request<{
-          project: { canvas: { nodes: StudioNode[]; edges: unknown[] } };
+          project: { revision: number; canvas: { nodes: StudioNode[]; edges: unknown[] } };
         }>(`/api/projects/${projectId}`);
         node.position = {
           x: 120 + project.canvas.nodes.length * 35,
@@ -298,6 +332,7 @@ export function CommerceWorkspace({
           body: JSON.stringify({
             nodes: [...project.canvas.nodes, node],
             edges: project.canvas.edges,
+            revision: project.revision,
           }),
         });
       }
@@ -341,7 +376,7 @@ export function CommerceWorkspace({
       };
       const current = readLocal<MarketTemplate[]>("sparkle:templates", []);
       const exists = current.some((item) => item.id === template.id);
-      setSavedTemplates(
+      await setSavedTemplates(
         exists
           ? current.map((item) => item.id === template.id ? template : item)
           : [...current, template],
@@ -357,16 +392,19 @@ export function CommerceWorkspace({
   async function unpublishWork(template: MarketTemplate) {
     await run(async () => {
       const current = readLocal<MarketTemplate[]>("sparkle:templates", []);
-      setSavedTemplates(
+      await setSavedTemplates(
         current.map((item) => item.id === template.id ? { ...item, published: false } : item),
       );
       setNotice("Template unpublished. Your draft is still in My templates.");
     });
   }
+  const visualStyles = [...new Set(catalog.flatMap(template => template.styles || []))].sort();
   const filteredTemplates = catalog.filter(
     (t) =>
       (category === "All" || t.category === category) &&
-      `${t.name} ${t.description}`.toLowerCase().includes(search.toLowerCase()),
+      (industry === "All industries" || t.industry === industry) &&
+      (visualStyle === "All styles" || t.styles?.includes(visualStyle)) &&
+      `${t.name} ${t.description} ${t.industry || ""} ${(t.styles || []).join(" ")} ${t.imageCredit?.label || ""}`.toLowerCase().includes(search.toLowerCase()),
   );
   return (
     <StudioShell pageTitle={title.name} description={title.description} actions={
@@ -537,6 +575,24 @@ export function CommerceWorkspace({
                 />
               </label>
             </div>
+            <div className="template-refinements">
+              <label>
+                <span>Industry</span>
+                <select aria-label="Filter templates by industry" value={industry} onChange={event => setIndustry(event.target.value)}>
+                  {["All industries", ...templateIndustries].map(value => <option key={value}>{value}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Visual style</span>
+                <select aria-label="Filter templates by visual style" value={visualStyle} onChange={event => setVisualStyle(event.target.value)}>
+                  {["All styles", ...visualStyles].map(value => <option key={value}>{value}</option>)}
+                </select>
+              </label>
+              <span className="template-result-count" aria-live="polite">{filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}</span>
+              {(industry !== "All industries" || visualStyle !== "All styles" || category !== "All" || search) && (
+                <button className="template-reset" onClick={() => { setIndustry("All industries"); setVisualStyle("All styles"); setCategory("All"); setSearch(""); }}>Clear filters</button>
+              )}
+            </div>
             <div className="market-grid">
               {filteredTemplates.map((template) => (
                 <article key={template.id} className="market-card">
@@ -545,12 +601,14 @@ export function CommerceWorkspace({
                     onClick={() => setDetail(template)}
                     aria-label={`View ${template.name}`}
                   >
-                    <img src={template.image} alt={template.name} />
+                    <img src={template.image} alt={template.imageCredit?.label || template.name} style={{ objectPosition: template.imagePosition }} />
                     <span>{template.category}</span>
                   </button>
                   <div className="market-card-body">
+                    {template.industry && <span className="template-industry">{template.industry}</span>}
                     <h3>{template.name}</h3>
                     <p>{template.description}</p>
+                    {!!template.styles?.length && <div className="template-style-tags">{template.styles.slice(0, 3).map(style => <span key={style}>{style}</span>)}</div>}
                     <div className="market-card-footer">
                       <span>
                         {template.price
@@ -568,7 +626,7 @@ export function CommerceWorkspace({
             {!filteredTemplates.length && (
               <div className="empty-state">
                 <h3>No templates found.</h3>
-                <p>Try a different category or search.</p>
+                <p>Try another industry, visual style or search.</p>
               </div>
             )}
           </>
@@ -621,65 +679,6 @@ export function CommerceWorkspace({
             )}
           </>
         )}
-        {section === "orders" && (
-          <>
-            <div className="stats-row">
-              <div className="stat-card">
-                <span>Demo purchases</span>
-                <strong>
-                  $
-                  {orders
-                    .reduce((sum, order) => sum + order.amount, 0)
-                    .toFixed(2)}
-                </strong>
-                <p>No real charges</p>
-              </div>
-              <div className="stat-card">
-                <span>Creative activity</span>
-                <strong>{orders.length.toString().padStart(2, "0")}</strong>
-                <p>Saved in this browser</p>
-              </div>
-              <div className="stat-card">
-                <span>Withdrawable earnings</span>
-                <strong>$0.00</strong>
-                <p>Payments not connected</p>
-              </div>
-            </div>
-            {orders.length ? (
-              <table className="orders-table">
-                <thead>
-                  <tr>
-                    <th>Project or template</th>
-                    <th>Activity</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders
-                    .slice()
-                    .reverse()
-                    .map((order) => (
-                      <tr key={order.id}>
-                        <td>{order.name}</td>
-                        <td>{order.kind}</td>
-                        <td>{new Date(order.date).toLocaleDateString()}</td>
-                        <td>${order.amount.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="empty-state">
-                <h3>No orders yet</h3>
-                <p>Demo template purchases will appear here.</p>
-                <Link className="secondary-button" href="/commercial/market">
-                  Explore the template market <ArrowUpRight size={14} />
-                </Link>
-              </div>
-            )}
-          </>
-        )}
         {section === "assets" && (
           <>
             <div className="commerce-tabs">
@@ -702,7 +701,10 @@ export function CommerceWorkspace({
                     (asset) => category === "All" || asset.kind === category,
                   )
                   .map((asset) => (
-                    <article key={asset.id} className="market-card">
+                    <article key={asset.id} className="market-card library-asset-card">
+                      <button className="asset-delete-button" aria-label={`Delete ${asset.name}`} title="Delete asset" onClick={() => setAssetToDelete(asset)}>
+                        <Trash2 size={16} />
+                      </button>
                       {asset.kind === "image" ? (
                         <img
                           className="asset-library-preview"
@@ -766,13 +768,19 @@ export function CommerceWorkspace({
             wide
           >
             <div className="detail-preview">
-              <img src={detail.image} alt={detail.name} />
+              <img src={detail.image} alt={detail.imageCredit?.label || detail.name} style={{ objectPosition: detail.imagePosition }} />
               <div>
                 <span className="eyebrow">{detail.category} WORKFLOW</span>
                 <h3>{detail.name}</h3>
                 <p>{detail.description}</p>
+                {!!detail.styles?.length && <div className="template-style-tags">{detail.styles.map(style => <span key={style}>{style}</span>)}</div>}
+                {detail.imageCredit && (
+                  <a className="campaign-credit" href={detail.imageCredit.url} target="_blank" rel="noreferrer">
+                    Reference image · {detail.imageCredit.label} <ArrowUpRight size={12} />
+                  </a>
+                )}
                 <div className="detail-meta">
-                  <span>Brief · Visuals · Shot list</span>
+                  <span>{detail.adPlan ? "7 creative layers · Editable canvas" : "Brief · Visuals · Shot list"}</span>
                   <strong>{detail.price ? `$${detail.price}` : "Free"}</strong>
                 </div>
                 <p>
@@ -807,6 +815,17 @@ export function CommerceWorkspace({
                 </small>
               </div>
             </div>
+            {detail.adPlan && (
+              <section className="ad-plan" aria-label="Seven-layer creative plan">
+                <header><h4>Inside the creative plan</h4><span>Editable Sparkle workflow · campaign imagery as reference</span></header>
+                {adLayers.map((layer, index) => (
+                  <details key={layer.key} open={index === 0}>
+                    <summary><span className="ad-layer-number">{String(index + 1).padStart(2, "0")}</span>{layer.name}<Plus size={14} /></summary>
+                    <p>{detail.adPlan?.[layer.key]}</p>
+                  </details>
+                ))}
+              </section>
+            )}
           </Dialog>
         )}
         {createSubject && (
@@ -816,8 +835,7 @@ export function CommerceWorkspace({
           >
             <form className="studio-form" onSubmit={submitSubject}>
               <p className="form-note">
-                Describe your merchant brief for creators. This saves a brand
-                subject, not a paid commission.
+                Describe your merchant brief for creators. Add an optional reward for a paid commission.
               </p>
               <label>
                 Name
@@ -857,6 +875,7 @@ export function CommerceWorkspace({
                 Target audience
                 <input name="audience" placeholder="Who is this for?" />
               </label>
+              <label>Optional creator reward (USD)<input name="reward" type="number" min="0" max="1000000" step="0.01" placeholder="0.00" /></label>
               {error && (
                 <p role="alert" className="error-message">
                   {error}
@@ -875,9 +894,7 @@ export function CommerceWorkspace({
           >
             <form className="studio-form" onSubmit={saveWork}>
               <p className="form-note">
-                Save a private draft or deliberately publish to the local
-                marketplace. Publishing does not collect payments or share work
-                with other users.
+                Save a private draft or deliberately publish to the marketplace. Published templates are visible to other signed-in users.
               </p>
               <label>
                 Name
@@ -956,6 +973,15 @@ export function CommerceWorkspace({
               Add to an existing project <ArrowRight size={15} />
             </button>
             {error && <p role="alert">{error}</p>}
+          </Dialog>
+        )}
+        {assetToDelete && (
+          <Dialog title="Delete asset?" onClose={() => setAssetToDelete(null)}>
+            <p className="dialog-intro">Remove “{assetToDelete.name}” from My assets? Existing projects can still use this file.</p>
+            <div className="marketspace-form-actions">
+              <button className="secondary-button" onClick={() => setAssetToDelete(null)}>Cancel</button>
+              <button className="primary-button" onClick={removeAsset}>Delete asset <Trash2 size={15} /></button>
+            </div>
           </Dialog>
         )}
         {projectPicker && (

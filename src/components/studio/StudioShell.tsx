@@ -16,6 +16,7 @@ import {
 import { Dialog } from "./Dialog";
 import { newProject, request } from "./data";
 import "./studio.css";
+import { initializeWorkspace } from "./persistence";
 
 export function CreateDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -168,6 +169,7 @@ export function StudioShell({
   onRenameProject?: (name: string) => Promise<void>;
   actions?: ReactNode;
 }) {
+  useEffect(() => { void initializeWorkspace().catch(() => {}); }, []);
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [create, setCreate] = useState(false);

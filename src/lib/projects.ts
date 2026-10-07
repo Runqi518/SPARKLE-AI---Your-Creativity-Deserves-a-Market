@@ -3,7 +3,12 @@ import {
   CreateProjectInput,
   ProjectResponse,
 } from "../../schemas/project";
-import { Project, Canvas, GenerationJob, Subject, sequelize, syncDatabase } from "./db";
+import { Project, Canvas, GenerationJob, sequelize, syncDatabase } from "./db";
+import { randomUUID } from "node:crypto";
+import { databaseWrite } from "./db/migrations";
+import { StudioError } from "./studio/http";
+import { CanvasSnapshotSchema } from "../../schemas/project";
+import { Transaction } from "sequelize";
 
 const MAX_PROJECTS = 10;
 
@@ -58,13 +63,14 @@ function initialCanvas(input: CreateProjectInput): CanvasSnapshot {
   return { nodes: [source, output], edges: [{ id: "source-generation", source: "source", target: "generation", animated: true }] };
 }
 
-export async function createProject(input: CreateProjectInput): Promise<ProjectResponse> {
+export async function createProject(input: CreateProjectInput, outer?: Transaction): Promise<ProjectResponse> {
   await syncDatabase();
-  const count = await Project.count();
+  const work = async (transaction: Transaction) => {
+  const count = await Project.count({ transaction });
   if (count >= MAX_PROJECTS) throw new Error(`项目数量已达上限（${MAX_PROJECTS} 个）`);
-  if (input.subjectId && !await Subject.findByPk(input.subjectId)) throw new Error("Brand subject not found.");
+  if (input.subjectId) await (await import("./commissions")).requireSubject(input.subjectId);
   
-  const id = `project_${Date.now()}`;
+  const id = `project_${randomUUID()}`;
   const canvasData = initialCanvas(input);
   
   const project = await Project.create({
@@ -75,28 +81,31 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectR
     basicType: input.basicType || null,
     subjectId: input.subjectId || null,
     nodesCount: canvasData.nodes.length,
-  });
+  }, { transaction });
 
   await Canvas.create({
     projectId: id,
     nodes: canvasData.nodes,
     edges: canvasData.edges,
-  });
+  }, { transaction });
 
   return {
     ...project.toJSON(),
     canvas: canvasData,
   } as ProjectResponse;
+  };
+  return outer ? work(outer) : databaseWrite(() => sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, work));
 }
 
 export async function getProject(id: string): Promise<ProjectResponse | null> {
   await syncDatabase();
   const project = await Project.findByPk(id, { include: Canvas });
   if (!project) return null;
-  const data = project.toJSON() as any;
+  const data = project.toJSON() as ProjectResponse & { Canvas?: { nodes: CanvasSnapshot["nodes"]; edges: CanvasSnapshot["edges"]; revision: number } };
   return {
     ...data,
     canvas: data.Canvas ? { nodes: data.Canvas.nodes, edges: data.Canvas.edges } : { nodes: [], edges: [] },
+    revision: data.Canvas?.revision ?? 0,
   };
 }
 
@@ -117,26 +126,32 @@ export async function renameProject(id: string, name: string) {
 export async function deleteProject(id: string) {
   await syncDatabase();
   // Existing SQLite databases predate the cascade constraints in the model.
-  await sequelize.transaction(async transaction => {
+  await databaseWrite(() => sequelize.transaction(async transaction => {
+    for (const name of ["StudioGeneration", "StudioAgentRun", "ChatSession", "RenderJob", "SkillRun"]) {
+      const model = sequelize.models[name];
+      if (model && (await sequelize.getQueryInterface().showAllTables()).includes(String(model.getTableName()))) await model.destroy({ where: { projectId: id }, transaction });
+    }
     await GenerationJob.destroy({ where: { projectId: id }, transaction });
     await Canvas.destroy({ where: { projectId: id }, transaction });
     await Project.destroy({ where: { id }, transaction });
-  });
+  }));
 }
 
-export async function saveCanvas(id: string, canvas: CanvasSnapshot) {
+export async function saveCanvas(id: string, canvas: CanvasSnapshot, revision?: number) {
   await syncDatabase();
-  const project = await Project.findByPk(id);
-  if (!project) return null;
-  
-  await Canvas.update({
-    nodes: canvas.nodes,
-    edges: canvas.edges,
-  }, { where: { projectId: id } });
-  
-  await project.update({ nodesCount: canvas.nodes.length });
-  
-  return getProject(id);
+  const parsed = CanvasSnapshotSchema.safeParse(canvas);
+  if (!parsed.success) throw new StudioError(parsed.error.issues[0].message);
+  return databaseWrite(() => sequelize.transaction(async transaction => {
+    const project = await Project.findByPk(id, { transaction });
+    if (!project) return null;
+    const row = await Canvas.findOne({ where: { projectId: id }, transaction });
+    if (!row) throw new StudioError("Project canvas is missing.", 409);
+    const current = Number(row.get("revision") || 0);
+    if (revision !== undefined && revision !== current) throw new StudioError("This canvas changed in another tab. Your edits are kept locally; reload before saving again.", 409);
+    await row.update({ nodes: parsed.data.nodes, edges: parsed.data.edges, revision: current + 1 }, { transaction });
+    await project.update({ nodesCount: parsed.data.nodes.length }, { transaction });
+    return { ...project.toJSON(), canvas: parsed.data, revision: current + 1 } as ProjectResponse;
+  }));
 }
 
 export async function updateNodeResult(id: string, nodeId: string, resultUrl: string) {

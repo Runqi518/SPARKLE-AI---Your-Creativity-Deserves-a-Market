@@ -89,7 +89,7 @@ export function providerConfig(kind: GenerationKind) {
     authHeader, authScheme: authScheme === "none" ? "" : authScheme,
     requestTemplate: template("REQUEST_TEMPLATE"), pollTemplate: template("POLL_REQUEST_TEMPLATE"),
     pollMethod: get("POLL_METHOD", "GET"),
-    outputPath: get("OUTPUT_PATH", kind === "text" ? "choices.0.message.content" : kind === "image" ? "data" : "url"),
+    outputPath: get("OUTPUT_PATH", kind === "text" ? "choices" : kind === "image" ? "data" : "url"),
     urlPath: get("URL_PATH", "url"), b64Path: get("B64_PATH", "b64_json"),
     jobIdPath: get("JOB_ID_PATH", "id"), statusPath: get("STATUS_PATH", "status"),
     pollOutputPath: get("POLL_OUTPUT_PATH", get("OUTPUT_PATH", "url")),

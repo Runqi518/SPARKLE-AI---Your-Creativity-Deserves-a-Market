@@ -13,8 +13,8 @@ export const FluidParticleText = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let particles: Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number }> = [];
-    let mouse = { x: -1000, y: -1000 };
+    const particles: Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number }> = [];
+    const mouse = { x: -1000, y: -1000 };
     let animationFrameId: number;
 
     const resize = () => {

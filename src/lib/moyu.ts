@@ -1,5 +1,3 @@
-import { writeFileSync, mkdirSync } from "node:fs";
-import path from "node:path";
 
 export class MoyuClient {
   static get apiKey() {
@@ -44,7 +42,7 @@ export class MoyuClient {
       textPrompt = prompt.replace(imageUrl, '').trim() || "融合图片风格";
     }
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       model: "doubao-seedream-5-0-260128", // 推荐的 5.0 模型
       prompt: textPrompt,
       size: "2K",
@@ -79,7 +77,7 @@ export class MoyuClient {
 
   // 3. 视频任务提交
   static async submitVideoTask(prompt: string, imageUrl?: string): Promise<string> {
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       model: "doubao-seedance-2-0-260128", // 根据网关实际可用的真实模型 ID 替换
       prompt: prompt,
       duration: 5,

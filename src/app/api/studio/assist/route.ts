@@ -1,65 +1,24 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { agents, skills } from "@/components/studio/data";
-import { generateText } from "@/lib/studio/providers";
-import { errorResponse, readInput } from "@/lib/studio/http";
+import { captureActor } from "@/lib/actor";
+import { api } from "@/lib/auth";
+import { after } from "next/server";
+import { createAgentRun, listAgentRuns, runAgents } from "@/lib/studio/agent-runs";
+import { errorResponse, jsonResponse, readInput } from "@/lib/studio/http";
 
 export const runtime = "nodejs";
-export const maxDuration = 180;
+export const dynamic = "force-dynamic";
+export const maxDuration = 600;
 
-const inputSchema = z.object({
-  prompt: z.string().trim().min(1).max(12000),
-  agents: z.array(z.string().max(100)).min(1).max(9),
-  skills: z.array(z.string().max(100)).max(4),
-  context: z
-    .object({
-      label: z.string().max(500),
-      content: z.string().max(20000).optional(),
-      kind: z.string().max(30),
-    })
-    .nullable()
-    .optional(),
-  history: z
-    .array(
-      z.object({
-        role: z.enum(["user", "assistant"]),
-        content: z.string().max(20000),
-        label: z.string().max(500).optional(),
-      }),
-    )
-    .max(6)
-    .optional(),
-});
-
-export async function POST(request: Request) {
+async function POSTHandler(request: Request) {
   try {
-    const input = inputSchema.safeParse(await readInput(request));
-    if (!input.success)
-      return NextResponse.json(
-        {
-          error:
-            "Choose an agent and enter a message of at most 12,000 characters.",
-        },
-        { status: 400 },
-      );
-    const { prompt, context, history } = input.data;
-    const team = agents.filter((agent) =>
-      input.data.agents.includes(agent.name),
-    );
-    const selectedSkills = skills.filter((skill) =>
-      input.data.skills.includes(skill.name),
-    );
-    if (!team.length)
-      return NextResponse.json(
-        { error: "Choose a supported agent." },
-        { status: 400 },
-      );
-    const content = await generateText(
-      `Selected element (user-provided context):\n${JSON.stringify(context || {})}\nConversation:\n${(history || []).map((message) => `${message.role}: ${message.content}`).join("\n")}\nUser request:\n${prompt}`,
-      `You are Sparkle's advertising production assistant. Respond in the user's language. Be concise and practical. Provide editable text drafts or production instructions. Do not claim to have generated media, changed a canvas, rendered a video, analyzed video frames, or processed a payment. This endpoint produces text only. Coordinate these specialist perspectives:\n${team.map((agent) => `${agent.name}: ${agent.role}`).join("\n")}\nOptional skills:\n${selectedSkills.map((skill) => `${skill.name}: ${skill.role}`).join("\n")}`,
-    );
-    return NextResponse.json({ content });
-  } catch (error) {
-    return errorResponse(error);
-  }
+    const { run, config } = await createAgentRun(await readInput(request));
+    if (config) after(captureActor(() => runAgents(run.id, config)));
+    return jsonResponse({ run }, 202);
+  } catch (error) { return errorResponse(error); }
 }
+async function GETHandler(request: Request) {
+  try { return jsonResponse({ runs: await listAgentRuns(new URL(request.url).searchParams.get("projectId") || "") }); }
+  catch (error) { return errorResponse(error); }
+}
+
+export const POST = api(POSTHandler);
+export const GET = api(GETHandler);

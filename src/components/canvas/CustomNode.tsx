@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Play, Image as ImageIcon, Video, Type, Sparkles, Loader2, Link as LinkIcon } from "lucide-react";
+import { useState } from "react";
+import { Play, Image as ImageIcon, Video, Type, Sparkles, Link as LinkIcon } from "lucide-react";
 import { NodeProps, Handle, Position, useReactFlow, useEdges, useNodes } from "@xyflow/react";
 
 export const CustomNode = ({ id, data }: NodeProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string>(String(data.resultUrl || ""));
-  const [prompt, setPrompt] = useState("");
+  const [editedPrompt, setPrompt] = useState<string | null>(null);
   
   // 用于更新全局画布数据
   const { updateNodeData } = useReactFlow();
@@ -22,13 +22,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
     .filter(Boolean)
     .join("\n\n---\n\n"); // 组合多个父节点的输出
 
-  // 监听父节点的数据变化，如果当前提示词为空，则自动填充
-  useEffect(() => {
-    if (parentOutputs && !prompt) {
-      setPrompt(parentOutputs);
-    }
-  }, [parentOutputs]);
-
+  const prompt = editedPrompt ?? parentOutputs;
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);

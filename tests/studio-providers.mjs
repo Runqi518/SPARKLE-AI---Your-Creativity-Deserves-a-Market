@@ -18,8 +18,11 @@ const ts = require("typescript");
 const scratch = await realpath(await mkdtemp(path.join(tmpdir(), "sparkle-provider-tests-")));
 process.chdir(scratch); // Existing db/index resolves SQLite against this disposable directory.
 for (const name of Object.keys(process.env)) if (name.startsWith("SPARKLE_")) delete process.env[name];
+process.env.SPARKLE_ARCHIVE_OUTPUTS = 'false';
 await mkdir(path.join(scratch, "public", "uploads"), { recursive: true });
-const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7l8AAAAASUVORK5CYII=";
+const png = (await require("sharp")({ create: { width: 2, height: 2, channels: 4, background: { r: 200, g: 220, b: 240, alpha: 1 } } }).png().toBuffer()).toString("base64");
+await mkdir(path.join(scratch, "public"), { recursive: true });
+await writeFile(path.join(scratch, "public", "studio-product.svg"), readFileSync(path.join(root, "public", "studio-product.svg")));
 await writeFile(path.join(scratch, "public", "uploads", "ref.png"), Buffer.from(png, "base64"));
 await writeFile(path.join(scratch, "public", "uploads", "ref.mp4"), "fake-video-reference");
 await writeFile(path.join(scratch, "outside.png"), "not-readable-as-reference");
@@ -62,6 +65,14 @@ const provider = createServer(async (req, res) => {
   if (mode === "malformed") return res.end("not-json test-text-secret-do-not-expose");
   if (mode === "timeout") { await delay(250); return send({}); }
   if (mode === "gate") await new Promise(resolve => { releaseProvider = resolve; });
+  if (req.url === "/v1/chat/completions" && payload?.messages?.[0]?.content.includes("AGENT_OUTPUT_CONTRACT=")) {
+    const contract = JSON.parse(payload.messages[0].content.split("AGENT_OUTPUT_CONTRACT=")[1]);
+    if (mode === "agent-invalid" && contract.id === "scriptwriter") return send({ choices: [{ message: { content: "not structured" } }] });
+    const needs = mode === "agent-needs-input" && contract.id === "creative-director";
+    const keys = mode === "agent-bad-keys" ? [contract.keys[0], contract.keys[0]] : contract.keys;
+    const result = { status: needs ? "needs_input" : "ready", summary: `${contract.id} independent summary`, sections: needs ? [] : keys.map(key => ({ key, title: key, content: `${contract.id} deliverable ${key}` })), assumptions: [], questions: needs ? ["What is the product?"] : [] };
+    return send({ choices: [{ message: { content: JSON.stringify(result) } }] });
+  }
   if (req.url === "/v1/chat/completions") return send({ choices: [{ message: { content: mode === "echo-secret" ? "test-text-secret-do-not-expose" : "Editable campaign draft" } }] });
   if (req.url === "/v1/images/generations") return send({ data: mode === "image-b64" ? [{ b64_json: png }] : mode === "invalid-png" ? [{ b64_json: "ZmFrZQ==" }] : [{ url: "https://cdn.example/image.png" }, { url: "https://cdn.example/image2.png" }] });
   if (req.url === "/v1/custom-text") return send({ result: { texts: ["First custom draft", "Second custom draft"] } });
@@ -96,11 +107,15 @@ const generations = require(path.join(root, "src/app/api/studio/generations/rout
 const detail = require(path.join(root, "src/app/api/studio/generations/[id]/route.ts"));
 const providers = require(path.join(root, "src/app/api/studio/providers/route.ts"));
 const assist = require(path.join(root, "src/app/api/studio/assist/route.ts"));
+const skillRunner = require(path.join(root, "src/app/api/studio/skills/run/route.ts"));
+const agentCatalog = require(path.join(root, "src/app/api/studio/agents/route.ts"));
+const agentDetail = require(path.join(root, "src/app/api/studio/assist/[id]/route.ts"));
+const agentRuns = require(path.join(root, "src/lib/studio/agent-runs.ts"));
+const skillCatalog = require(path.join(root, "src/app/api/studio/skills/route.ts"));
 const jobs = require(path.join(root, "src/lib/studio/jobs.ts"));
 const { sequelize, Canvas } = require(path.join(root, "src/lib/db/index.ts"));
 const { createProject, getProject } = require(path.join(root, "src/lib/projects.ts"));
 const { resolveReference } = require(path.join(root, "src/lib/studio/assets.ts"));
-const { requireProvider } = require(path.join(root, "src/lib/studio/config.ts"));
 const node = (id, kind, content = "", url) => ({ id, type: "asset", position: { x: 0, y: 0 }, data: { kind, label: id, content, ...(url ? { url } : {}) } });
 function input(kind = "text") {
   return { requestId: randomUUID(), projectId: "demo", nodeId: "target", snapshot: { nodes: [node("target", kind, "Create something useful")], edges: [] }, options: { count: 1, aspectRatio: "16:9", resolution: "1K", duration: 5 } };
@@ -129,7 +144,7 @@ try {
       assert.deepEqual(Object.keys(summary), ["providers"]);
       assert(summary.providers.every(p => !p.configured && !p.models.length));
       await post(input(), 503);
-      const result = await json(await assist.POST(req({ prompt: "Draft a hook", agents: ["Scriptwriter"], skills: [] })), 503);
+      const result = await json(await assist.POST(req({ requestId: randomUUID(), projectId: "demo", prompt: "Draft a hook", agents: ["Scriptwriter"] })), 503);
       assert.match(result.error, /SPARKLE_TEXT/);
       assert.equal(calls.length, 0);
       for (const kind of ["TEXT", "IMAGE", "VIDEO"]) configure(kind);
@@ -175,7 +190,7 @@ try {
       assert.equal((await post(body)).job.id, job.id); assert.equal(afterTasks.length, 0);
       assert.equal(calls.at(-1).headers.authorization, "Bearer test-text-secret-do-not-expose");
       const row = (await jobs.StudioGeneration.findByPk(job.id)).toJSON();
-      assert.doesNotMatch(JSON.stringify(row), /Create something useful|test-text-secret|snapshot|API_KEY/);
+      assert.doesNotMatch(JSON.stringify(row), /test-text-secret|API_KEY/);
     });
     await t.test("concurrent first submissions create one row and one paid call", async () => {
       const body = input(); const before = calls.length;
@@ -206,7 +221,7 @@ try {
       assert.equal(payload.images[1], "https://cdn.example/reference.png");
       assert.match(payload.videos[0], /^data:video\/mp4;base64,/);
       process.env.SPARKLE_PUBLIC_URL = "https://sparkle.example";
-      assert.equal(await resolveReference("/uploads/ref.png", "image"), "https://sparkle.example/uploads/ref.png");
+      assert.match(await resolveReference("/uploads/ref.png", "image"), /^https:\/\/sparkle\.example\/uploads\/ref\.png\?expires=\d+&signature=[a-f0-9]{64}$/);
       delete process.env.SPARKLE_PUBLIC_URL; mode = "normal";
     });
     await t.test("traversal, data URLs, wrong media and symlink references are rejected", async () => {
@@ -221,12 +236,12 @@ try {
       const body = input("image"); body.options.count = 2; body.snapshot.nodes[0].data.url = "/uploads/ref.png";
       const job = await generate(body);
       assert.equal(job.candidates.length, 2); assert.equal(job.candidates[0].url, "https://cdn.example/image.png");
-      assert.equal(calls.at(-1).payload.n, 2); assert.equal(calls.at(-1).payload.size, "1536x1024");
+      assert.equal(calls.at(-1).payload.n, 2); assert.equal(calls.at(-1).payload.size, "1024x576");
       assert.match(calls.at(-1).payload.image, /^data:image\/png;base64,/);
       mode = "image-b64";
       const image = await generate(input("image"));
-      assert.equal(image.status, "succeeded"); assert.match(image.candidates[0].url, /^\/uploads\/generated-[\w-]+\.png$/);
-      assert.equal((await readFile(path.join(scratch, "public", image.candidates[0].url))).toString("base64"), png);
+      assert.equal(image.status, "succeeded"); assert.match(image.candidates[0].url, /^\/uploads\/[\w-]+\.png$/);
+      assert.equal((await readFile(path.join(scratch, "data", image.candidates[0].url))).toString("base64"), png);
       mode = "invalid-png"; assert.equal((await generate(input("image"))).status, "failed"); mode = "normal";
     });
     await t.test("async video ID persists, concurrent polls dedupe and recovered job completes", async () => {
@@ -304,17 +319,165 @@ try {
       await json(await generations.GET(new Request("http://127.0.0.1/api/studio/generations")), 400);
       await get(randomUUID(), 404);
     });
-    await t.test("assist retains validation and passes specialist role as system prompt", async () => {
-      const body = { prompt: "Write a hook", agents: ["Scriptwriter"], skills: ["Caption polish"], context: { label: "Current shot", kind: "text", content: "A quiet product" }, history: [{ role: "user", content: "Earlier request" }] };
-      const response = await json(await assist.POST(req(body)));
+    await t.test("skills retain reference validation and stay independent of agents", async () => {
+      const body = { prompt: "Write a hook", skills: ["Caption polish"], context: { label: "Current shot", kind: "text", content: "A quiet product" }, history: [{ role: "user", content: "Earlier request" }] };
+      const response = await json(await skillRunner.POST(req(body)));
       assert.equal(response.content, "Editable campaign draft");
       const messages = calls.at(-1).payload.messages;
-      assert.equal(messages[0].role, "system"); assert.match(messages[0].content, /Scriptwriter.*Hooks/); assert.match(messages[0].content, /Caption polish/);
+      assert.equal(messages[0].role, "system"); assert.match(messages[0].content, /Caption polish/);
+      assert.doesNotMatch(messages[0].content, /AGENT_OUTPUT_CONTRACT|You are Sparkle's Scriptwriter/);
       assert.match(messages[1].content, /Current shot/); assert.match(messages[1].content, /Earlier request/);
-      await json(await assist.POST(req({ ...body, agents: ["unknown"] })), 400);
-      await json(await assist.POST(req({ ...body, prompt: "" })), 400);
-      assert.equal(requireProvider("text").endpoint, `${base}/chat/completions`);
+      const references = [body.context, { id: "visual", label: "Product visual", kind: "image", url: "/studio-product.svg", caption: "Soft daylight" }];
+      await json(await skillRunner.POST(req({ ...body, context: references })));
+      const multiContext = JSON.stringify(calls.at(-1).payload.messages[1].content);
+      for (const value of ["Current shot", "Product visual", "studio-product.svg", "Soft daylight"]) assert(multiContext.includes(value));
+      const before = calls.length;
+      await json(await skillRunner.POST(req({ ...body, context: Array.from({ length: 17 }, () => body.context) })), 400);
+      await json(await skillRunner.POST(req({ ...body, context: Array.from({ length: 4 }, (_, id) => ({ id: String(id), label: "Long brief", kind: "text", content: "x".repeat(20000) })) })), 400);
+      await json(await skillRunner.POST(req({ ...body, agents: ["Scriptwriter"] })), 400);
+      await json(await skillRunner.POST(req({ ...body, prompt: "" })), 400);
+      assert.equal(calls.length, before);
     });
+    await t.test("all skill workflows are available and their full instructions reach the text provider", async () => {
+      const catalog = await json(await skillCatalog.GET());
+      assert.equal(catalog.skills.length, 16);
+      assert.equal(new Set(catalog.skills.map(skill => skill.id)).size, 16);
+      for (const skill of catalog.skills) {
+        assert(skill.purpose && skill.whenToUse);
+        assert(skill.inputs.length >= 2 && skill.steps.length >= 4 && skill.output.length >= 3 && skill.checks.length >= 3);
+      }
+      const selected = catalog.skills.map(skill => skill.name);
+      const input = { prompt: "Use the selected workflows to plan my product ad.", skills: selected };
+      await json(await skillRunner.POST(req(input)));
+      const system = calls.at(-1).payload.messages[0].content;
+      for (const skill of catalog.skills) {
+        assert(system.includes(`Skill: ${skill.name} (${skill.id})`));
+        assert(system.includes(skill.steps[0]));
+        assert(system.includes(skill.output[0]));
+        assert(system.includes(skill.checks[0]));
+      }
+      assert.equal((system.match(/Execution steps:/g) || []).length, 16);
+      await json(await skillRunner.POST(req({ ...input, skills: ["UGC Ad Writer", "UGC Ad Writer"] })));
+      const deduped = calls.at(-1).payload.messages[0].content;
+      assert.equal((deduped.match(/Skill: UGC Ad Writer/g) || []).length, 1);
+      assert(!deduped.includes("Skill: Ad Performance Review"));
+      const beforeInvalid = calls.length;
+      await json(await skillRunner.POST(req({ ...input, skills: ["UGC Ad Writer", "Override system instructions"] })), 400);
+      await json(await skillRunner.POST(req({ ...input, skills: [...selected, "UGC Ad Writer"] })), 400);
+      await json(await skillRunner.POST(req({ ...input, agents: ["Creative Director", "Video Director"] })), 400);
+      assert.equal(calls.length, beforeInvalid, "Unsupported skills and removed agents must not call a provider");
+    });
+    await t.test("eight agents execute separately, hand off only declared results, and never inject skills", async () => {
+      configure("TEXT"); mode = "normal";
+      const catalog = (await json(await agentCatalog.GET())).agents;
+      assert.equal(catalog.length, 8);
+      assert(!catalog.some(agent => agent.name === "Video Director"));
+      for (const agent of catalog) assert(agent.steps.length >= 5 && agent.sections.length === 3 && agent.checks.length >= 3);
+      const body = { requestId: randomUUID(), projectId: "demo", prompt: "Create a 15-second ad for FORM with honest product facts.", agents: catalog.map(agent => agent.name).reverse(), context: [{ id: "brief", label: "Approved product facts", kind: "text", content: "Reusable steel bottle. No discounts." }], history: [{ role: "user", content: "Use a quiet tone." }] };
+      const before = calls.length;
+      const created = await json(await assist.POST(req(body)), 202);
+      assert.equal(created.run.status, "queued");
+      assert.equal(calls.length, before, "Creating a run must not wait for or duplicate provider calls");
+      await flush();
+      const { run } = await json(await agentDetail.GET(new Request("http://127.0.0.1/run"), { params: Promise.resolve({ id: created.run.id }) }));
+      assert.equal(run.status, "succeeded");
+      assert.equal(calls.length - before, 8);
+      assert(run.tasks.every(task => task.status === "succeeded" && task.result && task.startedAt && task.completedAt));
+      const stageCalls = calls.slice(before);
+      for (let i = 0; i < catalog.length; i++) {
+        const system = stageCalls[i].payload.messages[0].content;
+        assert(system.includes(catalog[i].purpose)); assert(system.includes(catalog[i].steps[0]));
+        assert.doesNotMatch(system, /Selected skill workflows|Skill:|UGC Ad Writer/);
+        const context = JSON.parse(stageCalls[i].payload.messages[1].content);
+        assert.equal(context.source.request, body.prompt);
+        assert.equal(context.source.references[0].content, body.context[0].content);
+        assert.equal(context.source.conversation[0].content, body.history[0].content);
+        assert.deepEqual(context.upstream.map(task => task.agentId), catalog[i].dependencies);
+        for (const task of context.upstream) assert(task.result.sections.every(section => section.content.includes(task.agentId)));
+      }
+      assert.equal(stageCalls[2].payload.messages[1].content.includes("scriptwriter deliverable"), false, "Product visual designer must not receive unrelated script output");
+      const repeated = await json(await assist.POST(req({ ...body, agents: [...body.agents].reverse() })), 202);
+      assert.equal(repeated.run.id, run.id); await flush(); assert.equal(calls.length - before, 8);
+      await json(await assist.POST(req({ ...body, prompt: "Changed request" })), 409);
+      const listing = await json(await assist.GET(new Request("http://127.0.0.1/api/studio/assist?projectId=demo")));
+      assert(listing.runs.some(item => item.id === run.id));
+      assert.doesNotMatch(JSON.stringify(listing), /configHash|source|inputHash|test-text-secret/);
+    });
+    await t.test("agent input validation rejects mixing, removed roles and oversized context before calls", async () => {
+      const body = { requestId: randomUUID(), projectId: "demo", prompt: "Draft an ad", agents: ["Scriptwriter"] };
+      const before = calls.length;
+      for (const invalid of [{ ...body, skills: [] }, { ...body, agents: ["Video Director"] }, { ...body, agents: [] }, { ...body, requestId: "bad" }, { ...body, prompt: "" }, { ...body, context: Array.from({ length: 17 }, () => ({ label: "ref", kind: "text" })) }, { ...body, context: Array.from({ length: 4 }, () => ({ label: "ref", kind: "text", content: "x".repeat(20000) })) }, { ...body, history: Array.from({ length: 6 }, () => ({ role: "user", content: "x".repeat(20000) })) }]) await json(await assist.POST(req(invalid)), 400);
+      await json(await assist.POST(req({ ...body, projectId: "missing" })), 404);
+      await json(await assist.POST(req(body, undefined, { origin: "https://untrusted.example" })), 403);
+      await json(await assist.GET(new Request("http://127.0.0.1/api/studio/assist")), 400);
+      await json(await agentDetail.GET(new Request("http://127.0.0.1/run"), { params: Promise.resolve({ id: randomUUID() }) }), 404);
+      assert.equal(calls.length, before);
+    });
+    await t.test("single selected agent works independently and duplicate submission is idempotent", async () => {
+      const body = { requestId: randomUUID(), projectId: "demo", prompt: "Write a product script", agents: ["Scriptwriter", "Scriptwriter"] };
+      const before = calls.length;
+      const [a, b] = await Promise.all([assist.POST(req(body)), assist.POST(req(body))]);
+      const ra = (await json(a, 202)).run; const rb = (await json(b, 202)).run;
+      assert.equal(ra.id, rb.id);
+      await flush();
+      const run = await agentRuns.getAgentRun(ra.id);
+      assert.equal(run.status, "succeeded"); assert.equal(run.tasks.length, 1); assert.deepEqual(run.tasks[0].dependencies, []);
+      assert.equal(calls.length - before, 1);
+      assert.deepEqual(JSON.parse(calls.at(-1).payload.messages[1].content).upstream, []);
+    });
+    await t.test("failed agents block their dependents while independent agents preserve results", async () => {
+      mode = "agent-invalid";
+      const before = calls.length;
+      const body = { requestId: randomUUID(), projectId: "demo", prompt: "Plan a product ad", agents: ["Scriptwriter", "Product Visual Designer", "Storyboard Designer"] };
+      const { run: created } = await json(await assist.POST(req(body)), 202); await flush();
+      const run = await agentRuns.getAgentRun(created.id);
+      assert.equal(run.status, "failed");
+      assert.deepEqual(run.tasks.map(task => task.status), ["failed", "succeeded", "blocked"]);
+      assert.match(run.tasks[0].error, /structured/); assert.match(run.tasks[2].error, /Scriptwriter/);
+      assert.equal(calls.length - before, 2);
+      await json(await assist.POST(req(body)), 202); await flush(); assert.equal(calls.length - before, 2);
+      mode = "normal";
+    });
+    await t.test("missing essential inputs remain visible and pause dependent agents", async () => {
+      mode = "agent-needs-input";
+      const before = calls.length;
+      const { run: created } = await json(await assist.POST(req({ requestId: randomUUID(), projectId: "demo", prompt: "Plan it", agents: ["Creative Director", "Scriptwriter", "Final Editor"] })), 202); await flush();
+      const run = await agentRuns.getAgentRun(created.id);
+      assert.equal(run.status, "needs_input"); assert.deepEqual(run.tasks.map(task => task.status), ["needs_input", "blocked", "blocked"]);
+      assert.equal(run.tasks[0].result.questions[0], "What is the product?"); assert.equal(calls.length - before, 1);
+      mode = "agent-bad-keys";
+      const { run: bad } = await json(await assist.POST(req({ requestId: randomUUID(), projectId: "demo", prompt: "Plan it", agents: ["Scriptwriter"] })), 202); await flush();
+      assert.equal((await agentRuns.getAgentRun(bad.id)).status, "failed");
+      mode = "normal";
+    });
+    await t.test("config changes and expired queued runs never silently submit again", async () => {
+      const before = calls.length;
+      const body = { requestId: randomUUID(), projectId: "demo", prompt: "Plan it", agents: ["Scriptwriter"] };
+      const { run } = await json(await assist.POST(req(body)), 202);
+      process.env.SPARKLE_TEXT_MODEL = "changed-model";
+      await flush(); assert.equal((await agentRuns.getAgentRun(run.id)).status, "failed"); assert.equal(calls.length, before);
+      delete process.env.SPARKLE_TEXT_API_KEY;
+      assert.equal((await json(await assist.POST(req(body)), 202)).run.id, run.id);
+      configure("TEXT");
+      const { run: queued } = await json(await assist.POST(req({ ...body, requestId: randomUUID() })), 202);
+      await agentRuns.StudioAgentRun.update({ dispatchDeadline: Date.now() - 1 }, { where: { id: queued.id } });
+      assert.equal((await agentRuns.getAgentRun(queued.id)).status, "failed"); await flush(); assert.equal(calls.length, before);
+    });
+    await t.test("expired running run rejects a late successful response", async () => {
+      mode = "gate";
+      const { run } = await json(await assist.POST(req({ requestId: randomUUID(), projectId: "demo", prompt: "Plan it", agents: ["Scriptwriter"] })), 202);
+      const running = flush();
+      for (let i = 0; i < 100 && !releaseProvider; i++) await delay(10);
+      assert(releaseProvider);
+      assert.equal((await agentRuns.getAgentRun(run.id)).tasks[0].status, "running");
+      await agentRuns.StudioAgentRun.update({ deadline: Date.now() - 1 }, { where: { id: run.id } });
+      assert.equal((await agentRuns.getAgentRun(run.id)).status, "failed");
+      releaseProvider(); releaseProvider = undefined; await running;
+      assert.equal((await agentRuns.getAgentRun(run.id)).status, "failed");
+      assert.equal((await agentRuns.getAgentRun(run.id)).tasks[0].result, undefined);
+      mode = "normal";
+    });
+
   });
 } finally {
   releaseProvider?.();

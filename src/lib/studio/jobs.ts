@@ -8,12 +8,13 @@ import { prepareInput, type PreparedInput } from "./input";
 import { validateReference } from "./assets";
 import { StudioError } from "./http";
 import { pollVideo, submitGeneration } from "./providers";
+import { withActor } from "../actor";
 
 type JobRow = {
   id: string; requestId: string; inputHash: string; projectId: string; nodeId: string;
   kind: GenerationKind; model: string; count: number; configHash: string;
   status: StudioJob["status"]; candidates: GenerationCandidate[]; error: string | null;
-  providerJobId: string | null; deadline: number; submissionDeadline: number;
+  providerJobId: string | null; deadline: number; submissionDeadline: number; preparedJson: string | null;
   nextPollAt: number; pollToken: string | null; createdAt: Date; updatedAt: Date;
 };
 type JobModel = Model<JobRow, Partial<JobRow>>;
@@ -32,6 +33,7 @@ export const StudioGeneration = (sequelize.models.StudioGeneration || sequelize.
   candidates: { type: DataTypes.JSON, allowNull: false, defaultValue: [] },
   error: { type: DataTypes.TEXT, allowNull: true },
   providerJobId: { type: DataTypes.STRING, allowNull: true },
+  preparedJson: { type: DataTypes.TEXT, allowNull: true },
   deadline: { type: DataTypes.DOUBLE, allowNull: false },
   submissionDeadline: { type: DataTypes.DOUBLE, allowNull: false },
   nextPollAt: { type: DataTypes.DOUBLE, allowNull: false, defaultValue: 0 },
@@ -81,7 +83,8 @@ export async function createGeneration(raw: unknown): Promise<{ job: StudioJob; 
       id: randomUUID(), requestId: input.requestId, inputHash: prepared.inputHash,
       projectId: input.projectId, nodeId: input.nodeId, kind, model: config.model, count: input.options.count,
       configHash: configFingerprint(config), status: "queued", candidates: [],
-      deadline: now + config.jobTimeoutMs, submissionDeadline: now + 30000,
+      preparedJson: JSON.stringify(prepared),
+      deadline: now + config.jobTimeoutMs, submissionDeadline: now + 300000,
       nextPollAt: 0, pollToken: null, providerJobId: null, error: null,
     });
     return { job: publicJob(row.get({ plain: true })), submission: { prepared, config } };
@@ -104,6 +107,7 @@ export async function runGeneration(id: string, prepared: PreparedInput, config:
     await expireJobs(undefined, id);
     await StudioGeneration.update({
       status: result.providerJobId ? "running" : "succeeded", candidates: result.candidates,
+      error: result.warning || null,
       providerJobId: result.providerJobId ?? null, nextPollAt: Date.now() + config.pollIntervalMs,
     }, { where: { id, status: "running", providerJobId: null } });
   } catch (error) {
@@ -146,7 +150,7 @@ export async function getGeneration(id: string, poll = true): Promise<StudioJob>
         await expireJobs(undefined, id);
         await StudioGeneration.update({
           ...(result.candidates.length ? { status: "succeeded", candidates: result.candidates } : {}),
-          error: null, pollToken: null, nextPollAt: Date.now() + config.pollIntervalMs,
+          error: result.warning || null, pollToken: null, nextPollAt: Date.now() + config.pollIntervalMs,
         }, { where: { id, status: "running", pollToken: token } });
       }
     } catch (error) {
@@ -154,9 +158,15 @@ export async function getGeneration(id: string, poll = true): Promise<StudioJob>
       // Status requests are read-only, but ambiguous provider errors are terminal, not hidden successes.
       await StudioGeneration.update({ status: "failed", error: safeError(error), pollToken: null }, { where: { id, status: "running", pollToken: token } });
     }
-    model = (await StudioGeneration.findByPk(id))!;
+    model = await StudioGeneration.findByPk(id);
   }
+  if (!model) throw new StudioError("Generation not found.", 404);
   return publicJob(model.get({ plain: true }));
+}
+export async function generationByRequest(requestId: string, projectId: string) {
+  await requireProject(projectId); await syncStudioJobs();
+  const row = await StudioGeneration.findOne({ where: { requestId, projectId } });
+  return row ? getGeneration(String(row.get("id")), false) : null;
 }
 
 export async function listGenerations(projectId: string) {
@@ -165,4 +175,29 @@ export async function listGenerations(projectId: string) {
   await expireJobs(projectId);
   const rows = await StudioGeneration.findAll({ where: { projectId }, order: [["createdAt", "DESC"], ["id", "DESC"]], limit: 100 });
   return rows.map(row => publicJob(row.get({ plain: true })));
+}
+
+export async function cancelGeneration(id: string) {
+  await getGeneration(id, false);
+  await StudioGeneration.update({ status: "failed", error: "Cancelled locally. A provider submission already in progress may still be billed.", pollToken: null }, { where: { id, status: { [Op.in]: ["queued", "running"] } } });
+  return getGeneration(id, false);
+}
+
+export async function recoverGenerationQueue() {
+  await syncStudioJobs();
+  // Internal worker inventory is never returned by a public API; every job runs in its recorded owner context.
+  const rows = await StudioGeneration.findAll({ ...{ hooks: false }, where: { status: { [Op.in]: ["queued", "running"] } }, limit: 50 });
+  for (const model of rows) {
+    const row = model.get({ plain: true });
+    const ownerId = String(model.get("ownerId" as keyof JobRow) || "local-workspace");
+    await withActor({ id: ownerId }, async () => {
+      if (row.status === "queued" && row.preparedJson) {
+        try {
+          const config = requireProvider(row.kind, row.model);
+          if (configFingerprint(config) !== row.configHash) throw new StudioError("Provider configuration changed before submission.", 409);
+          await runGeneration(row.id, JSON.parse(row.preparedJson), config);
+        } catch (error) { await StudioGeneration.update({ status: "failed", error: safeError(error) }, { where: { id: row.id, status: "queued" } }); }
+      } else await getGeneration(row.id).catch(() => {});
+    });
+  }
 }

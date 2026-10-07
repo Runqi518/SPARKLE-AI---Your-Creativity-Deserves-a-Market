@@ -1,70 +1,17 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { NextResponse } from "next/server";
-
+import { api } from "@/lib/auth";
+import { storeMedia } from "@/lib/media";
+import { jsonResponse, StudioError } from "@/lib/studio/http";
 export const runtime = "nodejs";
-const types: Record<string, [string, string]> = {
-  "image/jpeg": ["jpg", "image"],
-  "image/png": ["png", "image"],
-  "image/webp": ["webp", "image"],
-  "image/gif": ["gif", "image"],
-  "video/mp4": ["mp4", "video"],
-  "video/webm": ["webm", "video"],
-  "audio/mpeg": ["mp3", "audio"],
-  "audio/wav": ["wav", "audio"],
-  "audio/x-wav": ["wav", "audio"],
-  "audio/ogg": ["ogg", "audio"],
-};
-
-export async function POST(request: Request) {
-  try {
-    if (Number(request.headers.get("content-length") || 0) > 21 * 1024 * 1024)
-      return NextResponse.json(
-        { error: "Choose a file smaller than 20 MB." },
-        { status: 413 },
-      );
-    const form = await request.formData();
-    const file = form.get("file");
-    if (!(file instanceof File) || !file.size)
-      return NextResponse.json(
-        { error: "Choose a media file." },
-        { status: 400 },
-      );
-    if (file.size > 20 * 1024 * 1024)
-      return NextResponse.json(
-        { error: "Choose a file smaller than 20 MB." },
-        { status: 413 },
-      );
-    const format = types[file.type];
-    if (!format)
-      return NextResponse.json(
-        {
-          error: "Use a JPG, PNG, WebP, GIF, MP4, WebM, MP3, WAV or OGG file.",
-        },
-        { status: 415 },
-      );
-    const id = randomUUID();
-    const filename = `${id}.${format[0]}`;
-    const directory = path.join(process.cwd(), "public", "uploads");
-    await mkdir(directory, { recursive: true });
-    await writeFile(
-      path.join(directory, filename),
-      Buffer.from(await file.arrayBuffer()),
-    );
-    return NextResponse.json(
-      {
-        id,
-        name: file.name.slice(0, 120),
-        kind: format[1],
-        url: `/uploads/${filename}`,
-      },
-      { status: 201 },
-    );
-  } catch {
-    return NextResponse.json(
-      { error: "The file could not be uploaded. Try again." },
-      { status: 500 },
-    );
-  }
-}
+export const POST = api(async (request: Request) => {
+  const maximum = 21 * 1024 * 1024;
+  if (Number(request.headers.get("content-length") || 0) > maximum) throw new StudioError("Choose a file smaller than 20 MB.", 413);
+  const reader = request.body?.getReader();
+  if (!reader) throw new StudioError("Choose a media file.");
+  const chunks: Uint8Array[] = []; let size = 0;
+  try { for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.length; if (size > maximum) { await reader.cancel(); throw new StudioError("Choose a file smaller than 20 MB.", 413); } chunks.push(value); } } finally { reader.releaseLock(); }
+  let form: FormData;
+  try { form = await new Response(Buffer.concat(chunks), { headers: { "content-type": request.headers.get("content-type") || "" } }).formData(); } catch { throw new StudioError("Expected a multipart media upload."); }
+  const file = form.get("file");
+  if (!(file instanceof File)) throw new StudioError("Choose a media file.");
+  return jsonResponse(await storeMedia(file.name, file.type, Buffer.from(await file.arrayBuffer())), 201);
+});

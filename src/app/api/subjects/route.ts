@@ -1,31 +1,12 @@
-import { NextResponse } from "next/server";
+import { z } from "zod";
+import { api } from "@/lib/auth";
 import { Subject, syncDatabase } from "@/lib/db";
-
-// GET /api/subjects - 营销标的列表
-export async function GET() {
+import { availableSubjects } from "@/lib/commissions";
+import { jsonResponse, readInput, StudioError } from "@/lib/studio/http";
+const schema = z.object({ name: z.string().trim().min(1).max(160), type: z.enum(["product", "campaign", "service", "ip", "brand"]).default("product"), brief: z.string().max(20000).default(""), targetAudience: z.string().max(2000).default(""), sellingPoints: z.array(z.string().max(2000)).max(30).default([]), referenceAssets: z.array(z.string().max(2000)).max(16).default([]), brandKit: z.object({ colors: z.array(z.string().max(32)).max(16).default([]), tone: z.string().max(2000).default(""), forbidden: z.array(z.string().max(1000)).max(30).default([]) }).nullable().optional(), rewardCents: z.number().int().min(0).max(100000000).default(0) }).strict();
+export const GET = api(async () => jsonResponse({ subjects: await availableSubjects() }));
+export const POST = api(async (request: Request) => {
+  const parsed = schema.safeParse(await readInput(request)); if (!parsed.success) throw new StudioError(parsed.error.issues[0].message);
   await syncDatabase();
-  const subjects = await Subject.findAll({
-    where: { status: 'active' },
-    order: [['createdAt', 'DESC']],
-  });
-  return NextResponse.json({ subjects });
-}
-
-// POST /api/subjects - 创建营销标的
-export async function POST(request: Request) {
-  await syncDatabase();
-  const body = await request.json();
-  if (!body.name?.trim()) {
-    return NextResponse.json({ error: "标的名称不能为空" }, { status: 400 });
-  }
-  const subject = await Subject.create({
-    name: body.name.trim(),
-    type: body.type || 'product',
-    brief: body.brief || '',
-    sellingPoints: Array.isArray(body.sellingPoints) ? body.sellingPoints : [],
-    targetAudience: body.targetAudience || '',
-    brandKit: body.brandKit || null,
-    referenceAssets: Array.isArray(body.referenceAssets) ? body.referenceAssets : [],
-  });
-  return NextResponse.json({ subject }, { status: 201 });
-}
+  return jsonResponse({ subject: await Subject.create(parsed.data) }, 201);
+});

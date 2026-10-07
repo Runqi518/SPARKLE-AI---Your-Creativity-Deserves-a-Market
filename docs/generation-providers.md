@@ -35,7 +35,9 @@ The exact request and public TypeScript types are defined in `schemas/studio-gen
 | `POST /api/studio/generations` | `202 { job: StudioJob }` | Validates input, persists a queued job, schedules one submission using Next `after`, and returns before the provider finishes. |
 | `GET /api/studio/generations/[id]` | `{ job: StudioJob }` | Returns persisted status and, when due, makes one bounded status call for an asynchronous video. |
 | `GET /api/studio/generations?projectId=demo` | `{ jobs: StudioJob[] }` | Up to 100 newest jobs, newest first; expires interrupted jobs without calling providers. |
-| `POST /api/studio/assist` | `{ content: string }` | Existing prompt/agents/skills/context/history contract, now using the configured text provider. Specialist role instructions are passed separately as the system prompt. |
+| `POST /api/studio/assist` | `202 { run }` | Persisted independent agent run: requestId, projectId, prompt, agents, context and history. No skills accepted. See [agent workflows](studio-agents/README.md). |
+| `GET /api/studio/assist/:id` | `{ run }` | Poll per-agent status, results and input requirements without resubmitting. |
+| `POST /api/studio/skills/run` | `{ content: string }` | Separate skills-only execution: prompt, skills, context and history. No agents accepted. |
 
 Generation request:
 

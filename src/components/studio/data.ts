@@ -1,5 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
+import type { AdPlan } from "./campaign-templates";
 import type { GenerationCandidate, StudioGenerationOptions } from "../../../schemas/studio-generation";
+import { cacheKey, persistLibrary, writeCache } from "./persistence";
 
 export type AssetKind = "text" | "image" | "video" | "audio";
 export type StudioData = Record<string, unknown> & {
@@ -32,112 +34,21 @@ export type Template = {
   description: string;
   image: string;
   price: number;
+  imageCredit?: { label: string; url: string };
+  imagePosition?: string;
+  industry?: string;
+  styles?: string[];
+  adPlan?: AdPlan;
   nodes?: StudioNode[];
   edges?: Edge[];
   published?: boolean;
   projectId?: string;
 };
-export type Order = {
-  id: string;
-  name: string;
-  amount: number;
-  kind: string;
-  date: string;
-};
 
-export const agents = [
-  {
-    name: "Creative Director",
-    role: "Campaign strategy, creative direction and production planning.",
-  },
-  {
-    name: "Scriptwriter",
-    role: "Hooks, selling points, timed scripts and voiceover copy.",
-  },
-  {
-    name: "Product Visual Designer",
-    role: "Product imagery, packaging and detail shots.",
-  },
-  {
-    name: "Character Designer",
-    role: "Character references and consistent visual identity.",
-  },
-  {
-    name: "Scene Designer",
-    role: "Locations, lighting, environments and atmosphere.",
-  },
-  {
-    name: "Storyboard Designer",
-    role: "Shot breakdowns, framing, movement and timing.",
-  },
-  {
-    name: "Video Director",
-    role: "Video shot instructions and generation planning.",
-  },
-  {
-    name: "Sound Director",
-    role: "Voiceover, music direction and sound design.",
-  },
-  {
-    name: "Final Editor",
-    role: "Shot order, captions, timing and final composition.",
-  },
-];
-export const skills = [
-  {
-    name: "Reference breakdown",
-    role: "Describe the rhythm and shot structure of a supplied reference.",
-  },
-  {
-    name: "Motion graphics",
-    role: "Plan editable text, data and graphic animation.",
-  },
-  {
-    name: "Caption polish",
-    role: "Refine captions for clarity, length and brand tone.",
-  },
-  {
-    name: "Brand check",
-    role: "Check copy and creative direction against the supplied brand brief.",
-  },
-];
-export const templates: Template[] = [
-  {
-    id: "quiet-form",
-    name: "The quiet product film",
-    category: "Product",
-    description:
-      "A considered product introduction. Three scenes, a simple story, room for your brand.",
-    image: "/studio-product.svg",
-    price: 0,
-  },
-  {
-    id: "sculpted-light",
-    name: "Sculpted in light",
-    category: "Brand",
-    description:
-      "A visual-led brand story built around texture, form and movement.",
-    image: "/studio-object.svg",
-    price: 24,
-  },
-  {
-    id: "daily-ritual",
-    name: "An everyday ritual",
-    category: "Lifestyle",
-    description: "Turn a small everyday moment into a personal product story.",
-    image: "/studio-product.svg",
-    price: 18,
-  },
-  {
-    id: "new-perspective",
-    name: "A new perspective",
-    category: "Product",
-    description:
-      "A detail-first reveal with editable benefit cards and a closing call to action.",
-    image: "/studio-object.svg",
-    price: 0,
-  },
-];
+
+export { agents, skills } from "@/lib/studio/capabilities";
+
+export { templates } from "./campaign-templates";
 
 export function exampleNodes(): StudioNode[] {
   return [
@@ -213,22 +124,24 @@ export function exampleEdges(): Edge[] {
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   const data = await response.json();
+  if (response.status === 401 && typeof window !== "undefined" && !location.pathname.startsWith("/login")) location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
   if (!response.ok)
-    throw new Error(data.error || "The request could not be completed.");
+    throw Object.assign(new Error(data.error || "The request could not be completed."), { status: response.status });
   return data as T;
 }
 
 export function readLocal<T>(key: string, fallback: T): T {
   try {
-    return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
+    return JSON.parse(localStorage.getItem(cacheKey(key)) || "null") ?? fallback;
   } catch {
     return fallback;
   }
 }
 
 export function storeLocal(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value));
-  window.dispatchEvent(new Event("sparkle-storage"));
+  if (["sparkle:assets", "sparkle:templates"].includes(key)) return persistLibrary(key, value as { id: string; [key: string]: unknown }[]);
+  writeCache(key, value);
+  return Promise.resolve();
 }
 
 export async function newProject(

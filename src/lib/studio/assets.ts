@@ -1,11 +1,12 @@
 import { constants } from "node:fs";
-import { mkdir, open, realpath, writeFile } from "node:fs/promises";
+import { open, realpath } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { httpUrl, redact } from "./config";
 import { StudioError } from "./http";
+import { localMediaPath, signedMediaUrl, storeMedia } from "../media";
 
-const maxAssetBytes = 10 * 1024 * 1024;
+const maxAssetBytes = 20 * 1024 * 1024;
 const mime: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".svg": "image/svg+xml" };
 
 export function validateReference(value: string, kind: "image" | "video") {
@@ -14,7 +15,7 @@ export function validateReference(value: string, kind: "image" | "video") {
     if (redact(value) !== value) throw new StudioError("Reference URL contains a provider credential.");
     return;
   }
-  const demo = kind === "image" && ["/studio-product.svg", "/studio-object.svg"].includes(value);
+  const demo = kind === "image" && (["/studio-product.svg", "/studio-object.svg"].includes(value) || /^\/template-campaigns\/[A-Za-z0-9_-]+\.(png|jpg|jpeg|webp)$/i.test(value));
   if (!demo && !/^\/uploads\/[A-Za-z0-9][A-Za-z0-9_-]*\.(png|jpg|jpeg|webp|gif|mp4|webm|mov)$/i.test(value)) {
     throw new StudioError("References must be HTTP(S) URLs or supported files directly inside /uploads/.");
   }
@@ -25,11 +26,11 @@ export async function resolveReference(value: string, kind: "image" | "video") {
   validateReference(value, kind);
   if (/^https?:\/\//i.test(value)) return value; // Provider fetches it; never download arbitrary remote URLs here.
   const root = await realpath(path.join(process.cwd(), "public"));
-  const file = path.join(root, value);
+  const file = value.startsWith("/uploads/") ? await localMediaPath(value) : path.join(root, value);
   let handle;
   try {
     const resolved = await realpath(file);
-    if (resolved !== file || !resolved.startsWith(`${root}${path.sep}`)) throw new Error();
+    if (resolved !== file) throw new Error();
     handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
     const stat = await handle.stat();
     if (!stat.isFile() || stat.size < 1) throw new Error();
@@ -37,11 +38,12 @@ export async function resolveReference(value: string, kind: "image" | "video") {
     if (publicUrl) {
       const base = httpUrl(publicUrl);
       if (base.search || base.hash) throw new StudioError("SPARKLE_PUBLIC_URL must not contain a query or fragment.", 503);
-      return `${base.toString().replace(/\/$/, "")}${value}`;
+      return value.startsWith("/uploads/") ? signedMediaUrl(value, base.toString()) : `${base.toString().replace(/\/$/, "")}${value}`;
     }
-    if (stat.size > maxAssetBytes) throw new StudioError("Local reference exceeds 10 MiB. Configure SPARKLE_PUBLIC_URL for large uploads.");
+    if (stat.size > maxAssetBytes) throw new StudioError("Local reference exceeds 20 MiB. Configure SPARKLE_PUBLIC_URL for large uploads.");
     const bytes = await handle.readFile();
-    if (bytes.length > maxAssetBytes) throw new StudioError("Local reference exceeds 10 MiB.");
+    if (bytes.length > maxAssetBytes) throw new StudioError("Local reference exceeds 20 MiB.");
+    if (path.extname(value).toLowerCase() === ".svg") return `data:image/png;base64,${(await sharp(bytes).resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).png().toBuffer()).toString("base64")}`;
     return `data:${mime[path.extname(value).toLowerCase()]};base64,${bytes.toString("base64")}`;
   } catch (error) {
     if (error instanceof StudioError) throw error;
@@ -78,11 +80,5 @@ export async function storePng(value: unknown) {
     if (type === "IEND") { ended = length === 0 && offset === bytes.length; break; }
   }
   if (!header || !data || !ended) throw new StudioError("Provider PNG structure or dimensions are invalid.", 502);
-  const directory = path.join(process.cwd(), "public", "uploads");
-  await mkdir(directory, { recursive: true });
-  // Reject symlinked upload directories before writing generated media.
-  if (await realpath(directory) !== directory) throw new StudioError("Upload directory must not be a symlink.", 500);
-  const name = `generated-${randomUUID()}.png`;
-  await writeFile(path.join(directory, name), bytes, { flag: "wx", mode: 0o600 });
-  return `/uploads/${name}`;
+  return (await storeMedia("Generated image", "image/png", bytes)).url;
 }

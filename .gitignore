@@ -43,3 +43,8 @@ next-env.d.ts
 .env
 # Local studio uploads
 /public/uploads/
+# Private database, media, backups and render workspaces
+*.sqlite
+*.sqlite-*
+/data/
+/backups/

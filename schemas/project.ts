@@ -13,7 +13,7 @@ export const CreationModeSchema = z.enum(["template", "basic", "free"]);
 export const BasicCreationTypeSchema = z.enum(["t2v", "i2v", "edit"]);
 
 export const CanvasNodeSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1).max(160),
   type: z.string().default("custom"),
   position: z.object({ x: z.number(), y: z.number() }),
   data: z.record(z.string(), z.unknown()),
@@ -46,9 +46,28 @@ export const RenameProjectSchema = z.object({
 });
 
 export const CanvasSnapshotSchema = z.object({
-  nodes: z.array(CanvasNodeSchema),
-  edges: z.array(CanvasEdgeSchema),
+  nodes: z.array(CanvasNodeSchema).max(200),
+  edges: z.array(CanvasEdgeSchema).max(1000),
+}).superRefine((canvas, ctx) => {
+  const ids = new Set(canvas.nodes.map(node => node.id));
+  if (ids.size !== canvas.nodes.length) ctx.addIssue({ code: "custom", message: "Node IDs must be unique.", path: ["nodes"] });
+  if (new Set(canvas.edges.map(edge => edge.id)).size !== canvas.edges.length) ctx.addIssue({ code: "custom", message: "Edge IDs must be unique.", path: ["edges"] });
+  const outgoing = new Map<string, string[]>();
+  for (const edge of canvas.edges) {
+    if (!ids.has(edge.source) || !ids.has(edge.target)) ctx.addIssue({ code: "custom", message: "Connections must refer to existing nodes.", path: ["edges"] });
+    outgoing.set(edge.source, [...(outgoing.get(edge.source) || []), edge.target]);
+  }
+  const visited = new Set<string>(), stack = new Set<string>();
+  function visit(id: string): boolean {
+    if (stack.has(id)) return false;
+    if (visited.has(id)) return true;
+    stack.add(id);
+    for (const target of outgoing.get(id) || []) if (!visit(target)) return false;
+    stack.delete(id); visited.add(id); return true;
+  }
+  if ([...ids].some(id => !visit(id))) ctx.addIssue({ code: "custom", message: "Connections must not form a cycle.", path: ["edges"] });
 });
+export const SaveCanvasSchema = z.object({ nodes: z.array(CanvasNodeSchema).max(200), edges: z.array(CanvasEdgeSchema).max(1000), revision: z.number().int().nonnegative().optional() });
 export type CanvasSnapshot = z.infer<typeof CanvasSnapshotSchema>;
 
 export const ProjectResponseSchema = z.object({
@@ -62,6 +81,7 @@ export const ProjectResponseSchema = z.object({
   basicType: BasicCreationTypeSchema.optional(),
   subjectId: z.string().nullable().optional(),
   canvas: CanvasSnapshotSchema,
+  revision: z.number().int().nonnegative().optional(),
 });
 
 export type ProjectResponse = z.infer<typeof ProjectResponseSchema>;

@@ -46,8 +46,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import "@xyflow/react/dist/style.css";
+import { initializeWorkspace, bootstrapLibrary } from "./persistence";
 import { StudioShell } from "./StudioShell";
 import { Dialog } from "./Dialog";
+import { AgentRunMessage } from "./AgentRunMessage";
+import { agentRunText, type AgentRun, type AgentSubmission } from "../../../schemas/studio-agent";
 import { GenerationNode, NodeActions, kindIcons as typeIcons, defaultGenerationOptions } from "./GenerationNode";
 import type { GenerationCandidate, ProviderSummary, StudioJob } from "../../../schemas/studio-generation";
 import {
@@ -67,7 +70,7 @@ import {
 
 const nodeTypes = { asset: GenerationNode };
 type Snapshot = { nodes: StudioNode[]; edges: Edge[] };
-type Message = { role: "user" | "assistant"; content: string; label?: string };
+type Message = { role: "user" | "assistant"; content: string; label?: string; runId?: string; requestId?: string; agentInput?: AgentSubmission };
 
 function subscribeScreen(listener: () => void) {
   const query = window.matchMedia("(max-width: 760px)");
@@ -82,6 +85,12 @@ function CanvasEditor({ id }: { id: string }) {
   const [jobs, setJobs] = useState<Record<string, StudioJob>>({});
   const [submitting, setSubmitting] = useState<string[]>([]);
   const submittingRef = useRef(new Set<string>());
+  const generationAttempts = useRef<Record<string, { payload: string; requestId: string }>>({});
+  const revision = useRef(0);
+  const chatRevision = useRef(0);
+  const chatQueue = useRef(Promise.resolve());
+  const skillAttempt = useRef<{ key: string; body: string } | null>(null);
+  const [chatReady, setChatReady] = useState(false);
   const [panelWidth, setPanelWidth] = useState(326);
   const panelDrag = useRef<{ x: number; width: number } | null>(null);
   const editorLayout = useRef<HTMLDivElement>(null);
@@ -100,14 +109,18 @@ function CanvasEditor({ id }: { id: string }) {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [referencedIds, setReferencedIds] = useState<string[]>([]);
   const [panel, setPanel] = useState<"agents" | "skills" | null>(null);
-  const [team, setTeam] = useState([agents[0].name]);
+  const [team, setTeam] = useState<string[]>([agents[0].name]);
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [executionMode, setExecutionMode] = useState<"agents" | "skills">("agents");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [publish, setPublish] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [rendering, setRendering] = useState(false);
+  const exportAttempt = useRef<string | null>(null);
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [preview, setPreview] = useState(false);
@@ -125,7 +138,10 @@ function CanvasEditor({ id }: { id: string }) {
   const dirty = useRef(false);
   const messageEnd = useRef<HTMLDivElement>(null);
   const flow = useReactFlow<StudioNode>();
-  const selectedNode = nodes.find((n) => n.id === selected);
+  const referencedNodes = referencedIds.flatMap(nodeId => {
+    const node = nodes.find(n => n.id === nodeId);
+    return node ? [node] : [];
+  });
   const editNode = nodes.find((n) => n.id === editing);
   const totalDuration = Math.max(
     15,
@@ -138,24 +154,20 @@ function CanvasEditor({ id }: { id: string }) {
     let active = true;
     async function load() {
       try {
-        const result =
-          id === "demo"
-            ? {
-                project: {
-                  name: readLocal<string>("sparkle:demo-name", "FORM · A daily ritual"),
-                  canvas: readLocal<Snapshot>("sparkle:demo-canvas", {
-                    nodes: exampleNodes(),
-                    edges: exampleEdges(),
-                  }),
-                },
-              }
-            : await request<{ project: { name: string; canvas: Snapshot } }>(
-                `/api/projects/${id}`,
-              );
+        await initializeWorkspace();
+        await bootstrapLibrary("assets");
+        skillAttempt.current = readLocal<{ key: string; body: string } | null>(`sparkle:skill-attempt:${id}`, null);
+        generationAttempts.current = readLocal(`sparkle:generation-attempts:${id}`, {});
+        let result: { project: { name: string; revision: number; canvas: Snapshot } };
+        if (id === "demo") {
+          const saved = await request<{ project: { name: string; revision: number; canvas: Snapshot } | null }>("/api/workspace/demo");
+          result = saved.project ? { project: saved.project } : await request("/api/workspace/demo", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: readLocal("sparkle:demo-name", "FORM · A daily ritual"), revision: 0, canvas: readLocal("sparkle:demo-canvas", { nodes: exampleNodes(), edges: exampleEdges() }) }) });
+        } else result = await request(`/api/projects/${id}`);
         if (!active) return;
         const recovery = readLocal<{
           pending: boolean;
           snapshot: Snapshot;
+          revision?: number;
         } | null>(`sparkle:recovery:${id}`, null);
         const canvas = recovery?.pending
           ? recovery.snapshot
@@ -187,6 +199,7 @@ function CanvasEditor({ id }: { id: string }) {
         setSelected(normalized[0]?.id ?? null);
         setEdges(canvas.edges || []);
         setName(result.project.name);
+        revision.current = recovery?.pending && recovery.revision !== undefined ? recovery.revision : "revision" in result.project ? result.project.revision : 0;
         setReady(true);
         lastSaved.current = recovery?.pending
           ? ""
@@ -204,22 +217,54 @@ function CanvasEditor({ id }: { id: string }) {
             "Recovered your latest edits. Saving them to this project.",
           );
         setSaveStatus(
-          id === "demo" ? "Example · saved locally" : "All changes saved",
+          "All changes saved",
         );
-        const savedChat = readLocal<{
+        const cachedChat = readLocal<{
           team: string[];
           skills: string[];
           messages: Message[];
+          references?: string[];
+          executionMode?: "agents" | "skills";
         } | null>(`sparkle:chat:${id}`, null);
+        const serverChat = await request<{ state: typeof cachedChat; revision: number }>(`/api/projects/${id}/chat`);
+        chatRevision.current = serverChat.revision;
+        const savedChat = serverChat.state ?? cachedChat;
+        setChatReady(true);
         if (savedChat) {
-          setTeam(savedChat.team);
-          setActiveSkills(savedChat.skills);
+          setTeam([...new Set(savedChat.team)].filter(name => agents.some(agent => agent.name === name)));
+          setActiveSkills([...new Set(savedChat.skills)].filter(name => skills.some(skill => skill.name === name)));
           setMessages(savedChat.messages);
+          setExecutionMode(savedChat.executionMode === "skills" && savedChat.skills.length ? "skills" : "agents");
+          setReferencedIds((savedChat.references || []).filter(nodeId => normalized.some(node => node.id === nodeId)).slice(0, 16));
         }
+        if (skillAttempt.current) {
+          const attempt = JSON.parse(skillAttempt.current.body) as { requestId: string; prompt: string; skills: string[] };
+          const { runs } = await request<{ runs: { requestId: string; status: string; content?: string; error?: string }[] }>(`/api/studio/skills/run?projectId=${encodeURIComponent(id)}`);
+          const previous = runs.find(run => run.requestId === attempt.requestId);
+          if (previous && ["succeeded", "failed"].includes(previous.status)) {
+            if (!savedChat?.messages.some(message => message.requestId === attempt.requestId)) setMessages(current => [...current, { role: "assistant", requestId: attempt.requestId, label: previous.status === "succeeded" ? attempt.skills.join(" + ") : "Connection notice", content: previous.content || previous.error || "Skill execution failed." }]);
+            skillAttempt.current = null; storeLocal(`sparkle:skill-attempt:${id}`, null);
+          } else { setPrompt(attempt.prompt); setNotice("A saved skill request is unresolved. Retry the same prompt to check its result safely."); }
+        }
+        try {
+          const { runs } = await request<{ runs: AgentRun[] }>(`/api/studio/assist?projectId=${encodeURIComponent(id)}`);
+          if (!active) return;
+          const previous = savedChat?.messages || [];
+          const restored = runs.slice().reverse().flatMap(run => previous.some(message => message.runId === run.id || message.requestId === run.requestId) ? [] : [
+            { role: "user" as const, content: run.prompt },
+            { role: "assistant" as const, content: agentRunText(run).slice(0, 20000), label: "Agents", runId: run.id, requestId: run.requestId },
+          ]);
+          if (restored.length) setMessages(current => [...current, ...restored]);
+        } catch { /* Existing chat remains available; individual runs can refresh independently. */ }
         const storedWidth = readLocal<number>("sparkle:panel-width", 326);
         if (Number.isFinite(storedWidth)) setPanelWidth(Math.max(280, Math.min(650, storedWidth)));
-        const recovered = await request<{ jobs: StudioJob[] }>(`/api/studio/generations?projectId=${encodeURIComponent(id)}`).catch(() => ({ jobs: [] }));
+        const recovered = await request<{ jobs: StudioJob[] }>(`/api/studio/generations?projectId=${encodeURIComponent(id)}`).catch(() => ({ jobs: [] as StudioJob[] }));
         if (!active) return;
+        for (const [nodeId, attempt] of Object.entries(generationAttempts.current)) {
+          const result = await request<{ job: StudioJob | null }>(`/api/studio/generations?projectId=${encodeURIComponent(id)}&requestId=${attempt.requestId}`).catch(() => ({ job: null }));
+          if (result.job) { recovered.jobs.unshift(result.job); delete generationAttempts.current[nodeId]; }
+        }
+        storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
         const latest: Record<string, StudioJob> = {};
         for (const job of recovered.jobs) if (!latest[job.nodeId] && normalized.some(n => n.id === job.nodeId && (!n.data.jobId || n.data.jobId === job.id))) latest[job.nodeId] = job;
         setJobs(latest);
@@ -282,13 +327,13 @@ function CanvasEditor({ id }: { id: string }) {
       })),
       edges,
     };
-    const serialized = JSON.stringify(snapshot);
+    const serialized = JSON.stringify(id === "demo" ? { ...snapshot, name } : snapshot);
     latestSnapshot.current = serialized;
     if (serialized === lastSaved.current) return;
     dirty.current = true;
     // Keep an immediate recovery copy so navigation during the debounce cannot lose edits.
     try {
-      storeLocal(`sparkle:recovery:${id}`, { pending: true, snapshot });
+      storeLocal(`sparkle:recovery:${id}`, { pending: true, snapshot, revision: revision.current });
     } catch {
       /* The server save remains available when browser storage is full. */
     }
@@ -298,13 +343,17 @@ function CanvasEditor({ id }: { id: string }) {
         .catch(() => {})
         .then(async () => {
           try {
-            if (id === "demo") storeLocal("sparkle:demo-canvas", snapshot);
-            else
-              await request(`/api/projects/${id}/canvas`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: serialized,
+            if (id === "demo") {
+              const saved = await request<{ project: { revision: number } }>("/api/workspace/demo", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, canvas: snapshot, revision: revision.current }) });
+              revision.current = saved.project.revision; storeLocal("sparkle:demo-canvas", snapshot);
+            }
+            else {
+              const saved = await request<{ project: { revision: number } }>(`/api/projects/${id}/canvas`, {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...snapshot, revision: revision.current }),
               });
+              revision.current = saved.project.revision;
+            }
             lastSaved.current = serialized;
             if (latestSnapshot.current === serialized) {
               dirty.current = false;
@@ -312,12 +361,13 @@ function CanvasEditor({ id }: { id: string }) {
                 storeLocal(`sparkle:recovery:${id}`, {
                   pending: false,
                   snapshot,
+                  revision: revision.current,
                 });
               } catch {
                 /* Saved on the server already. */
               }
               setSaveStatus(
-                id === "demo" ? "Example · saved locally" : "All changes saved",
+                "All changes saved",
               );
             }
           } catch (e) {
@@ -327,7 +377,7 @@ function CanvasEditor({ id }: { id: string }) {
         });
     }, 500);
     return () => clearTimeout(timer);
-  }, [nodes, edges, id, ready]);
+  }, [nodes, edges, id, ready, name]);
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -337,18 +387,30 @@ function CanvasEditor({ id }: { id: string }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
   useEffect(() => {
-    if (ready) {
+    if (ready && chatReady) {
+      const state = { team, skills: activeSkills, executionMode, messages, references: referencedIds.filter(nodeId => nodes.some(node => node.id === nodeId)) };
+      const timer = setTimeout(() => {
+        chatQueue.current = chatQueue.current.catch(() => {}).then(async () => {
+          try {
+            const saved = await request<{ revision: number }>(`/api/projects/${id}/chat`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ state, revision: chatRevision.current }) });
+            chatRevision.current = saved.revision;
+          } catch (error) { setNotice((error as Error).message); }
+        });
+      }, 500);
       try {
         storeLocal(`sparkle:chat:${id}`, {
           team,
           skills: activeSkills,
+          executionMode,
           messages,
+          references: referencedIds.filter(nodeId => nodes.some(node => node.id === nodeId)),
         });
       } catch {
         /* The canvas save status remains independent of chat storage. */
       }
+      return () => clearTimeout(timer);
     }
-  }, [ready, team, activeSkills, messages, id]);
+  }, [ready, chatReady, team, activeSkills, executionMode, messages, referencedIds, nodes, id]);
   useEffect(() => {
     if (!messages.length && !busy) return;
     messageEnd.current?.scrollIntoView({
@@ -433,7 +495,7 @@ function CanvasEditor({ id }: { id: string }) {
       ),
     );
   }
-  function add(kind: AssetKind, data: Partial<StudioData> = {}, linkedId?: string, upstream = false) {
+  function add(kind: AssetKind, data: Partial<StudioData> = {}, referenceTarget?: string) {
     remember();
     const center = flow.screenToFlowPosition({
       x: window.innerWidth * 0.45,
@@ -454,19 +516,21 @@ function CanvasEditor({ id }: { id: string }) {
         ...data,
       },
     };
-    const linked = nodes.find(n => n.id === linkedId);
+    const linked = nodes.find(n => n.id === referenceTarget);
     if (linked) {
-      node.position = { x: linked.position.x + (upstream ? -440 : 440), y: linked.position.y + edges.filter(e => upstream ? e.target === linked.id : e.source === linked.id).length * 480 };
-      setEdges(current => addEdge({ id: crypto.randomUUID(), source: upstream ? node.id : linked.id, target: upstream ? linked.id : node.id, sourceHandle: "output", targetHandle: "input" }, current));
+      node.position = { x: linked.position.x - 440, y: linked.position.y + edges.filter(e => e.target === linked.id).length * 360 };
+      setEdges(current => addEdge({ id: crypto.randomUUID(), source: node.id, target: linked.id, sourceHandle: "output", targetHandle: "input" }, current));
     }
     setNodes((current) => [...current, node]);
     setSelected(node.id);
     if (linked) void flow.setCenter(node.position.x + 165, node.position.y + 310, { zoom: Math.max(flow.getZoom(), 0.7), duration: 300 });
     return node.id;
   }
-  function canConnect(connection: Connection | Edge) {
+  function canConnect(connection: Connection | Edge, replacingId?: string) {
     if (!connection.source || !connection.target || connection.source === connection.target) return false;
-    if (edges.some(edge => edge.source === connection.source && edge.target === connection.target)) return false;
+    if (!nodes.some(node => node.id === connection.source) || !nodes.some(node => node.id === connection.target)) return false;
+    const connections = edges.filter(edge => edge.id !== replacingId);
+    if (connections.length >= 1000 || connections.some(edge => edge.source === connection.source && edge.target === connection.target)) return false;
     const visited = new Set<string>();
     const queue = [connection.target];
     while (queue.length) {
@@ -474,7 +538,7 @@ function CanvasEditor({ id }: { id: string }) {
       if (current === connection.source) return false;
       if (visited.has(current)) continue;
       visited.add(current);
-      queue.push(...edges.filter(edge => edge.source === current).map(edge => edge.target));
+      queue.push(...connections.filter(edge => edge.source === current).map(edge => edge.target));
     }
     return true;
   }
@@ -489,14 +553,27 @@ function CanvasEditor({ id }: { id: string }) {
     setSubmitting(current => [...current, nodeId]);
     configure(nodeId, { generationError: undefined });
     try {
+      const payload = JSON.stringify({ projectId: id, nodeId, snapshot: { nodes: nodes.map(n => ({ ...n, data: Object.fromEntries(Object.entries(n.data).filter(([key]) => !["generationError", "generationStatus", "jobId", "candidates"].includes(key))) })), edges }, options: { ...defaultGenerationOptions, resolution: node.data.kind === "video" ? "720p" : "1K", ...node.data.generationOptions } });
+      // An ambiguous submission is retried with the exact same payload and ID, including after reload.
+      const existing = generationAttempts.current[nodeId];
+      if (existing && existing.payload !== payload) throw new Error("The previous submission is unresolved. Restore its inputs or refresh its job status before submitting a different request.");
+      const attempt = existing || { payload, requestId: crypto.randomUUID() };
+      generationAttempts.current[nodeId] = attempt;
+      storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
       const { job } = await request<{ job: StudioJob }>("/api/studio/generations", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId: crypto.randomUUID(), projectId: id, nodeId,
-          snapshot: { nodes, edges }, options: { ...defaultGenerationOptions, resolution: node.data.kind === "video" ? "720p" : "1K", ...node.data.generationOptions } }),
+        body: JSON.stringify({ ...JSON.parse(attempt.payload), requestId: attempt.requestId }),
       });
+      delete generationAttempts.current[nodeId];
+      storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
       setJobs(current => ({ ...current, [nodeId]: job }));
       configure(nodeId, { jobId: job.id, generationStatus: job.status, generationError: job.error });
     } catch (error) {
+      const status = (error as Error & { status?: number }).status;
+      if (status && (status < 500 || status === 503)) {
+        delete generationAttempts.current[nodeId];
+        storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
+      }
       configure(nodeId, { generationError: (error as Error).message });
     } finally {
       submittingRef.current.delete(nodeId);
@@ -548,7 +625,7 @@ function CanvasEditor({ id }: { id: string }) {
                 caption: `Reference for ${targetNode.data.label}`,
               }
             : {}),
-        }, targetNode?.id, true);
+        }, targetNode?.id);
       const assets = readLocal<LibraryAsset[]>("sparkle:assets", []);
       storeLocal("sparkle:assets", [...assets, asset]);
       setNotice("Asset added to your canvas and library.");
@@ -558,51 +635,45 @@ function CanvasEditor({ id }: { id: string }) {
     if (fileInput.current) fileInput.current.value = "";
   }
   async function send() {
-    if (!prompt.trim() || busy || !team.length) return;
+    if (!prompt.trim() || busy || !(executionMode === "agents" ? team.length : activeSkills.length)) return;
     const input = prompt.trim();
     setPrompt("");
-    setBusy(true);
+    const source = {
+      prompt: input,
+      context: referencedNodes.map(node => ({ id: node.id, label: node.data.label, content: node.data.content, kind: node.data.kind, caption: node.data.caption, url: node.data.url })),
+      history: messages.filter(message => message.content && message.label !== "Connection notice").slice(-6).map(message => ({ role: message.role, content: message.content.slice(0, 20000), label: message.label })),
+    };
     const userMessage: Message = { role: "user", content: input };
-    const conversation = [...messages, userMessage];
-    setMessages(conversation);
-    try {
-      const result = await request<{ content: string }>("/api/studio/assist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: input,
-          agents: team,
-          skills: activeSkills,
-          context: selectedNode
-            ? {
-                label: selectedNode.data.label,
-                content: selectedNode.data.content,
-                kind: selectedNode.data.kind,
-              }
-            : null,
-          history: messages.slice(-6),
-        }),
-      });
-      setMessages([
-        ...conversation,
-        {
-          role: "assistant",
-          content: result.content,
-          label: team.join(" + ") || "Creative assistant",
-        },
-      ]);
-    } catch (e) {
-      setMessages([
-        ...conversation,
-        {
-          role: "assistant",
-          content: (e as Error).message,
-          label: "Connection notice",
-        },
-      ]);
-    } finally {
-      setBusy(false);
+    if (executionMode === "agents") {
+      const submission: AgentSubmission = { ...source, requestId: crypto.randomUUID(), projectId: id, agents: [...team] };
+      // Retain the exact request for safe retries and recovery after navigation.
+      setMessages(current => [...current, userMessage, { role: "assistant", label: "Agents", content: "", requestId: submission.requestId, agentInput: submission }]);
+      return;
     }
+    setBusy(true);
+    setMessages(current => [...current, userMessage]);
+    try {
+      const key = JSON.stringify({ prompt: input, skills: activeSkills, context: source.context });
+      if (skillAttempt.current && skillAttempt.current.key !== key) throw new Error("Resolve the previous skill request before submitting a different one.");
+      skillAttempt.current ||= { key, body: JSON.stringify({ ...source, skills: activeSkills, requestId: crypto.randomUUID(), projectId: id }) };
+      storeLocal(`sparkle:skill-attempt:${id}`, skillAttempt.current);
+      const requestId = JSON.parse(skillAttempt.current.body).requestId as string;
+      const result = await request<{ content: string }>("/api/studio/skills/run", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: skillAttempt.current.body,
+      });
+      skillAttempt.current = null; storeLocal(`sparkle:skill-attempt:${id}`, null);
+      setMessages(current => [...current, { role: "assistant", content: result.content, requestId, label: activeSkills.join(" + ") }]);
+    } catch (e) {
+      setPrompt(input);
+      if (skillAttempt.current) {
+        const requestId = JSON.parse(skillAttempt.current.body).requestId as string;
+        try {
+          const { runs } = await request<{ runs: { requestId: string; status: string }[] }>(`/api/studio/skills/run?projectId=${encodeURIComponent(id)}`);
+          if (runs.some(run => run.requestId === requestId && run.status === "failed") || ((e as Error & { status?: number }).status === 400)) { skillAttempt.current = null; storeLocal(`sparkle:skill-attempt:${id}`, null); }
+        } catch { /* Keep the exact pending request until its status can be retrieved. */ }
+      }
+      setMessages(current => [...current, { role: "assistant", content: (e as Error).message, label: "Connection notice" }]);
+    } finally { setBusy(false); }
   }
   function exportProject() {
     const file = new Blob(
@@ -617,7 +688,29 @@ function CanvasEditor({ id }: { id: string }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setExporting(false);
   }
-  function publishTemplate(event: React.FormEvent<HTMLFormElement>) {
+  async function exportVideo() {
+    if (rendering) return;
+    setRendering(true);
+    try {
+      exportAttempt.current ||= crypto.randomUUID();
+      const { job } = await request<{ job: { id: string } }>("/api/studio/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requestId: exportAttempt.current, projectId: id, snapshot: { nodes, edges }, aspectRatio: "16:9", resolution: "1080p" }) });
+      const deadline = Date.now() + 15 * 60000;
+      while (Date.now() < deadline) {
+        const result = await request<{ job: { status: string; url?: string; error?: string } }>(`/api/studio/exports/${job.id}`);
+        if (result.job.status === "failed") { exportAttempt.current = null; throw new Error(result.job.error || "Export failed."); }
+        if (result.job.status === "succeeded" && result.job.url) {
+          const link = document.createElement("a"); link.href = result.job.url; link.download = `${name.replace(/[^a-z0-9 -]/gi, "") || "sparkle-ad"}.mp4`; link.click();
+          exportAttempt.current = null; setExporting(false); setNotice("Advertisement exported as MP4."); return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      throw new Error("Export is still running. Its status remains saved on the server.");
+    } catch (error) {
+      if ((error as Error & { status?: number }).status) exportAttempt.current = null;
+      setNotice((error as Error).message);
+    } finally { setRendering(false); }
+  }
+  async function publishTemplate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const template: Template = {
@@ -635,7 +728,7 @@ function CanvasEditor({ id }: { id: string }) {
       published: true,
     };
     try {
-      storeLocal("sparkle:templates", [
+      await storeLocal("sparkle:templates", [
         ...readLocal<Template[]>("sparkle:templates", []).filter(item => item.projectId !== id),
         template,
       ]);
@@ -648,20 +741,29 @@ function CanvasEditor({ id }: { id: string }) {
 
   const actions = {
     activeId: selected,
+    referencedIds: referencedNodes.map(node => node.id),
     select: setSelected,
     edit: setEditing,
     ask: (nodeId: string) => {
       setSelected(nodeId);
       setChatOpen(true);
+      // A conversation reference is independent of the active node editor.
+      const selection = nodes.filter(node => node.selected);
+      const additions = [...new Set([nodeId, ...(selection.length > 1 ? selection.map(node => node.id) : [])])];
+      if (new Set([...referencedNodes.map(node => node.id), ...additions]).size > 16) {
+        setNotice("You can reference up to 16 materials. Remove a reference to add another.");
+        return;
+      }
+      setReferencedIds(current => {
+        const next = [...new Set([...current.filter(id => nodes.some(node => node.id === id)), ...additions])];
+        return next.slice(0, 16);
+      });
     },
     upload,
     configure,
     beginEdit: remember,
     generate: (nodeId: string) => { void generate(nodeId); },
     accept,
-    addLinked: (nodeId: string, kind: AssetKind, upstream: boolean) => { add(kind, {}, nodeId, upstream); },
-    inputs: (nodeId: string) => nodes.filter(node => edges.some(edge => edge.source === node.id && edge.target === nodeId)),
-    disconnect: (source: string, target: string) => { remember(); setEdges(current => current.filter(edge => edge.source !== source || edge.target !== target)); },
     providers,
     jobs,
     submitting,
@@ -731,8 +833,8 @@ function CanvasEditor({ id }: { id: string }) {
                   }}
                   onEdgesChange={onEdgesChange}
                   isValidConnection={canConnect}
-                  onConnect={connection => { remember(); setEdges(current => addEdge(connection, current)); }}
-                  onReconnect={(oldEdge, connection) => { remember(); setEdges(current => reconnectEdge(oldEdge, connection, current)); }}
+                  onConnect={connection => { if (canConnect(connection)) { remember(); setEdges(current => addEdge(connection, current)); } }}
+                  onReconnect={(oldEdge, connection) => { if (canConnect(connection, oldEdge.id)) { remember(); setEdges(current => reconnectEdge(oldEdge, connection, current)); } }}
                   defaultEdgeOptions={{ type: "default", markerEnd: { type: MarkerType.ArrowClosed, color: "#1b1c1e" } }}
                   onMove={(_, viewport) => setZoom(viewport.zoom)}
                   fitView
@@ -986,7 +1088,7 @@ function CanvasEditor({ id }: { id: string }) {
                   Creative team <small>{team.length}</small>
                 </span>
                 <button
-                  onClick={() => setPanel(panel === "agents" ? null : "agents")}
+                  onClick={() => { setExecutionMode("agents"); setPanel(panel === "agents" ? null : "agents"); }}
                 >
                   <Plus size={13} /> Add agent
                 </button>
@@ -995,7 +1097,7 @@ function CanvasEditor({ id }: { id: string }) {
                 {team.map((agent, i) => (
                   <button
                     key={agent}
-                    onClick={() => setTeam(team.filter((a) => a !== agent))}
+                    onClick={() => { setTeam(team.filter((a) => a !== agent)); setExecutionMode("agents"); }}
                     title={`Remove ${agent}`}
                   >
                     <span>{String(i + 1).padStart(2, "0")}</span>
@@ -1009,7 +1111,7 @@ function CanvasEditor({ id }: { id: string }) {
               </div>
               <button
                 className="skills-trigger"
-                onClick={() => setPanel(panel === "skills" ? null : "skills")}
+                onClick={() => { setExecutionMode("skills"); setPanel(panel === "skills" ? null : "skills"); }}
               >
                 <span>
                   Skills{" "}
@@ -1026,9 +1128,11 @@ function CanvasEditor({ id }: { id: string }) {
                   {activeSkills.map((skill) => (
                     <button
                       key={skill}
-                      onClick={() =>
-                        setActiveSkills(activeSkills.filter((s) => s !== skill))
-                      }
+                      onClick={() => {
+                        const next = activeSkills.filter((s) => s !== skill);
+                        setActiveSkills(next);
+                        setExecutionMode(next.length ? "skills" : "agents");
+                      }}
                     >
                       {skill}
                       <X size={11} />
@@ -1038,37 +1142,27 @@ function CanvasEditor({ id }: { id: string }) {
               )}
             </div>
             {panel && (
-              <div className="assistant-picker">
-                <header>
-                  <strong>
-                    {panel === "agents"
-                      ? "Build your creative team"
-                      : "Add a skill"}
-                  </strong>
-                  <button
+              <div className="assistant-picker" role="region" aria-label={panel === "agents" ? "Available agents" : "Available skills"}>
+                  <button className="picker-close"
                     aria-label="Close picker"
                     onClick={() => setPanel(null)}
                   >
                     <X size={15} />
                   </button>
-                </header>
-                <p>
-                  {panel === "agents"
-                    ? "Choose specialists for this conversation."
-                    : "Focused tools, separate from your agents."}
-                </p>
+                <div className="picker-list">
                 {(panel === "agents" ? agents : skills).map((item) => {
                   const list = panel === "agents" ? team : activeSkills;
                   return (
                     <button
                       className="picker-item"
+                      aria-pressed={list.includes(item.name)}
                       key={item.name}
                       onClick={() => {
                         const next = list.includes(item.name)
                           ? list.filter((n) => n !== item.name)
                           : [...list, item.name];
-                        if (panel === "agents") setTeam(next);
-                        else setActiveSkills(next);
+                        if (panel === "agents") { setTeam(next); setExecutionMode("agents"); }
+                        else { setActiveSkills(next); setExecutionMode(next.length ? "skills" : "agents"); }
                       }}
                     >
                       <span>
@@ -1083,13 +1177,13 @@ function CanvasEditor({ id }: { id: string }) {
                     </button>
                   );
                 })}
+                </div>
               </div>
             )}
             <div className="chat-messages">
               <div className="assistant-welcome">
                 <p>
-                  Tell your team what you have in mind. Select an element to
-                  bring it into the conversation.
+                  Tell your team what you have in mind.
                 </p>
                 <div className="suggestion-list">
                   {[
@@ -1111,9 +1205,14 @@ function CanvasEditor({ id }: { id: string }) {
                       ? "You"
                       : message.label || "AI studio"}
                   </span>
-                  <p>{message.content}</p>
+                  {message.runId || message.agentInput ? <AgentRunMessage
+                    runId={message.runId}
+                    submission={message.agentInput}
+                    onUpdate={run => setMessages(current => current.map(item => item.requestId === run.requestId || item.runId === run.id ? { ...item, runId: run.id, content: agentRunText(run).slice(0, 20000) } : item))}
+                    onAdd={(agentName, content) => add("text", { label: agentName, content, caption: "Review before use" })}
+                  /> : <p>{message.content}</p>}
                   {message.role === "assistant" &&
-                    message.label !== "Connection notice" && (
+                    message.label !== "Connection notice" && !message.runId && !message.agentInput && (
                       <button
                         className="text-button"
                         onClick={() =>
@@ -1131,21 +1230,23 @@ function CanvasEditor({ id }: { id: string }) {
               ))}
               {busy && (
                 <div className="thinking">
-                  Your team is working<span>...</span>
+                  Your skills are working<span>...</span>
                 </div>
               )}
               <div ref={messageEnd} />
             </div>
             <div className="chat-compose">
-              {selectedNode && (
-                <div className="context-chip" title={`Referencing: ${selectedNode.data.label}`}>
-                  <span>Referencing</span>
-                  <button
-                    aria-label="Remove context"
-                    onClick={() => setSelected(null)}
-                  >
-                    <X size={12} />
-                  </button>
+              {referencedNodes.length > 0 && (
+                <div className="context-references" role="group" aria-label="Referenced materials">
+                  <span className="context-heading">Referencing</span>
+                  {referencedNodes.map(node => (
+                    <div className="context-chip" key={node.id} title={`Referencing: ${node.data.label}`}>
+                      <span>{node.data.label}</span>
+                      <button aria-label={`Remove reference: ${node.data.label}`} onClick={() => setReferencedIds(current => current.filter(id => id !== node.id))}>
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
               <form
@@ -1155,7 +1256,7 @@ function CanvasEditor({ id }: { id: string }) {
                 }}
               >
                 <textarea
-                  aria-label="Message your creative team"
+                  aria-label={executionMode === "agents" ? "Message your creative team" : "Run your selected skills"}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="What would you like to create?"
@@ -1173,16 +1274,14 @@ function CanvasEditor({ id }: { id: string }) {
                 <div className="composer-footer">
                   <button
                     className="send-button"
-                    disabled={busy || !prompt.trim() || !team.length}
+                    disabled={busy || !prompt.trim() || !(executionMode === "agents" ? team.length : activeSkills.length)}
                     aria-label="Send message"
                   >
                     <ArrowUp size={18} />
                   </button>
                 </div>
               </form>
-              <small>
-                AI requires a configured provider. Review generated content.
-              </small>
+
             </div>
           </aside>
         )}
@@ -1279,11 +1378,14 @@ function CanvasEditor({ id }: { id: string }) {
             <Check size={17} />
           </div>
           <p className="form-note">
-            Video rendering is not connected yet. This exports project data, not
-            an MP4. Uploaded media remains on this local server.
+            Export an MP4 with timeline clips, captions and audio, or keep the
+            editable JSON project. Media remains on this server.
           </p>
           <button className="primary-button full-width" onClick={exportProject}>
             Download project
+          </button>
+          <button className="secondary-button full-width" disabled={rendering} onClick={exportVideo}>
+            {rendering ? "Rendering MP4…" : "Download MP4"}
           </button>
         </Dialog>
       )}

@@ -30,7 +30,7 @@ Jimeng informed the floating canvas tools and separate media elements. The acces
 - Manual text editing, media replacement, duplication and deletion.
 - Media upload with a 20 MB limit and an allowlist of supported formats.
 - Separate agent and skill controls in the conversation panel.
-- Text assistance through the independently configured text provider. Selected roles, skills and text context are included in the request; there is no fallback to legacy Moyu credentials.
+- Independent agent tasks through the configured text provider, with separate calls, role-specific deliverables, persisted status and dependency handoffs. Skills use their own endpoint and composer mode. See [agent workflows](studio-agents/README.md).
 - Five editable timeline lanes. Start time, duration and lane are saved in element data.
 - Visual sequence preview with a playhead, plus native controls for uploaded video and audio.
 - Server-backed project storage and browser recovery copies for edits made shortly before navigation.
@@ -50,7 +50,7 @@ Jimeng informed the floating canvas tools and separate media elements. The acces
 
 This is a functional product-workspace MVP, not a deployed ad-production or commerce service.
 
-- The nine agent options configure specialist perspectives in one text-assistance request. The editable DAG supplies upstream context for node generation; it is not an automatic multi-agent scheduler. Independent agent workers, quality evaluation and automatic end-to-end video production are not implemented here.
+- The eight agents now execute as independent text-model tasks in dependency order. Output contracts and execution status are validated and persisted; creative quality still needs human review. The canvas DAG supplies upstream context for media generation separately. Automatic media generation, audio synthesis, video editing and publishing by agents are not implemented here.
 - Text, image and video generation use the studio provider backend when configured. Each generatable node has its own prompt and options; results are candidates that require an explicit user choice before replacing the node content. Audio supports upload and playback only, not audio generation.
 - Reference-ad import is manual. Automated video deconstruction is not connected.
 - The timeline saves composition metadata and previews visual sequencing. It is not a frame-accurate audiovisual renderer, and it does not export MP4 or mix audio.

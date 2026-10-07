@@ -26,6 +26,8 @@ const results = [];
 const jobs = new Map();
 const generationRequests = [];
 const assistRequests = [];
+const skillRequests = [];
+const agentRuns = new Map();
 let nextOutcome = "succeeded";
 const runName = `Studio browser ${Date.now()}`;
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=", "base64");
@@ -56,8 +58,25 @@ await context.route("**/*", async route => {
     return json({ providers: ["text", "image", "video"].map(kind => ({ kind, configured: true, defaultModel: `fake-${kind}`, models: [`fake-${kind}`, `fake-${kind}-alternate`] })) });
   }
   if (url.pathname === "/api/studio/assist") {
-    assistRequests.push(request.postDataJSON());
-    return json({ content: "Browser fixture: keep the product story simple." });
+    if (request.method() === "GET") return json({ runs: [...agentRuns.values()].filter(run => run.projectId === url.searchParams.get("projectId")) });
+    const input = request.postDataJSON();
+    const existing = [...agentRuns.values()].find(run => run.requestId === input.requestId);
+    if (existing) return json({ run: existing }, 202);
+    assistRequests.push(input);
+    const run = { id: `browser-agent-${assistRequests.length}`, requestId: input.requestId, projectId: input.projectId, prompt: input.prompt, status: "queued", tasks: input.agents.map(name => ({ name, agentId: name.toLowerCase().replaceAll(" ", "-"), dependencies: [], status: "queued" })), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    agentRuns.set(run.id, run);
+    return json({ run }, 202);
+  }
+  if (url.pathname.startsWith("/api/studio/assist/")) {
+    const run = agentRuns.get(url.pathname.split("/").at(-1));
+    if (!run) return json({ error: "Unknown browser fixture run" }, 404);
+    run.status = "succeeded";
+    run.tasks = run.tasks.map(task => ({ ...task, status: "succeeded", result: { status: "ready", summary: "Browser fixture: keep the product story simple.", sections: [{ key: "draft", title: "Draft", content: "Editable fixture draft." }], assumptions: [], questions: [] } }));
+    return json({ run });
+  }
+  if (url.pathname === "/api/studio/skills/run") {
+    skillRequests.push(request.postDataJSON());
+    return json({ content: "Browser fixture: independent caption polish." });
   }
   if (url.pathname === "/api/studio/generations") {
     if (request.method() === "GET") {
@@ -228,14 +247,25 @@ try {
     await page.getByRole("button", { name: "Close picker" }).click();
     assert.equal(await page.locator(".team-chips button").count(), 2);
     assert.equal(await page.locator(".skill-chips button").count(), 1);
+    await page.getByRole("button", { name: "Add agent", exact: true }).click();
+    await page.getByRole("button", { name: "Close picker" }).click();
     await node("A tested idea").getByRole("button", { name: "Ask AI" }).click();
     await page.locator(".ai-panel .chat-compose .context-chip").filter({ hasText: "A tested idea" }).waitFor();
     await page.getByLabel("Message your creative team").fill("Make this product story more concise.");
     await page.getByRole("button", { name: "Send message" }).click();
+    await page.getByText("Complete · 2/2 agents", { exact: true }).waitFor();
+    await page.locator(".agent-task summary").filter({ hasText: "Scriptwriter" }).click();
     await page.locator(".chat-message.assistant").getByText("Browser fixture: keep the product story simple.", { exact: true }).waitFor();
-    assert.equal(assistRequests.at(-1).context.label, "A tested idea");
+    assert.equal(assistRequests.at(-1).context[0].label, "A tested idea");
     assert.ok(assistRequests.at(-1).agents.includes("Scriptwriter"));
-    assert.deepEqual(assistRequests.at(-1).skills, ["Caption polish"]);
+    assert.equal(assistRequests.at(-1).skills, undefined);
+    await page.locator(".skills-trigger").click();
+    await page.getByRole("button", { name: "Close picker" }).click();
+    await page.getByLabel("Run your selected skills").fill("Polish the caption independently.");
+    await page.getByRole("button", { name: "Send message" }).click();
+    await page.getByText("Browser fixture: independent caption polish.", { exact: true }).waitFor();
+    assert.deepEqual(skillRequests.at(-1).skills, ["Caption polish"]);
+    assert.equal(skillRequests.at(-1).agents, undefined);
     assert.equal(await page.locator(".asset-node").count(), 1, "Assist must not automatically add output");
     await page.locator('input[type="file"]').setInputFiles({ name: "studio-smoke.png", mimeType: "image/png", buffer: png });
     await node("studio-smoke.png").waitFor();

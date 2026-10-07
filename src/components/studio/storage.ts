@@ -1,7 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { storeLocal } from "./data";
+import { bootstrapLibrary, cacheKey, syncFailure } from "./persistence";
 
 function subscribe(listener: () => void) {
   window.addEventListener("storage", listener);
@@ -13,11 +14,12 @@ function subscribe(listener: () => void) {
 }
 
 export function useLocalValue<T>(key: string, fallback: T) {
+  useEffect(() => { if (key === "sparkle:assets" || key === "sparkle:templates") void bootstrapLibrary(key.slice(8) as "assets" | "templates").catch(syncFailure); }, [key]);
   const raw = useSyncExternalStore(
     subscribe,
     () => {
       try {
-        return localStorage.getItem(key);
+        return localStorage.getItem(cacheKey(key));
       } catch {
         return null;
       }

@@ -193,3 +193,96 @@
     flex: 1;
   }
 }
+
+.library-asset-card { position:relative; }
+.asset-delete-button {
+  position:absolute; top:12px; right:12px; z-index:2;
+  width:34px; height:34px; display:grid; place-items:center;
+  color:#222; border:1px solid rgba(255,255,255,.9); border-radius:50%;
+  background:rgba(255,255,255,.76); backdrop-filter:blur(16px);
+  box-shadow:0 3px 12px rgba(0,0,0,.08); cursor:pointer;
+}
+.asset-delete-button:hover { color:#fff; background:rgba(28,28,30,.9); }
+
+/* Soft spectrum behind a white frost: legible text and a light floating edge. */
+.sparkle-app .marketspace-page .subject-card {
+  position:relative; isolation:isolate; overflow:hidden;
+  display:flex; flex-direction:column; padding:26px; border-radius:24px;
+  border:1px solid rgba(255,255,255,.94);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.72), rgba(255,255,255,.58)),
+    radial-gradient(ellipse at 5% 10%, rgba(176,192,246,.45), transparent 60%),
+    radial-gradient(ellipse at 96% 12%, rgba(244,200,212,.4), transparent 60%),
+    radial-gradient(ellipse at 75% 105%, rgba(191,226,212,.46), transparent 58%),
+    linear-gradient(125deg, #f6f1fc, #fcf6ed 55%, #eef7f5);
+  -webkit-backdrop-filter:blur(22px) saturate(115%);
+  backdrop-filter:blur(22px) saturate(115%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(255,255,255,.4), 0 7px 18px rgba(70,59,91,.045), 0 1px 3px rgba(70,59,91,.035);
+  transition:transform .18s, box-shadow .18s;
+}
+.sparkle-app .marketspace-page .subject-card:hover { transform:translateY(-2px); box-shadow:inset 0 1px 0 white, 0 10px 24px rgba(70,59,91,.07); }
+.sparkle-app .subject-card h3 { font-size:21px; line-height:1.4; font-weight:650; }
+.sparkle-app .subject-card p { color:rgba(25,25,29,.66); font-size:13px; line-height:1.8; }
+.sparkle-app .subject-card .tag,
+.sparkle-app .subject-card .selling-points span { background:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.7); border-radius:8px; font-size:11px; }
+.sparkle-app .subject-card footer { margin-top:auto; border-top-color:rgba(0,0,0,.065); gap:12px; }
+.sparkle-app .subject-card footer small { font-size:11px; line-height:1.6; }
+@media (prefers-reduced-motion:reduce) { .sparkle-app .marketspace-page .subject-card:hover { transform:none; } }
+.campaign-credit { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:400; color:var(--muted); line-height:1.6; }
+.campaign-credit:hover { color:var(--ink); }
+@media (min-width:1280px) {
+  .marketspace-page .subject-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+
+/* Campaign library: imagery first, quiet metadata and compact refinements. */
+.sparkle-app .marketspace-page .template-refinements {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px; margin: -6px 0 26px;
+}
+.sparkle-app .marketspace-page .template-refinements label {
+  display: flex; align-items: center; gap: 9px; color: #747478; font-size: 12px; font-weight: 400;
+}
+.sparkle-app .marketspace-page .template-refinements select {
+  max-width: 240px; min-width: 150px; padding: 9px 32px 9px 12px; color: #252529;
+  border: 1px solid rgba(40,40,50,.09); border-radius: 10px; background: rgba(255,255,255,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9); font-size: 12px; font-weight: 400;
+}
+.sparkle-app .marketspace-page .template-result-count {
+  margin-left: auto; font-size: 12px; color: #858589; font-weight: 400;
+}
+.sparkle-app .marketspace-page .template-reset {
+  padding: 5px 0; border: 0; background: transparent; color: #4f4f55; font-size: 12px; font-weight: 400;
+}
+.sparkle-app .marketspace-page .market-card { display: flex; flex-direction: column; }
+.sparkle-app .marketspace-page .market-card-body { display: flex; flex-direction: column; flex: 1; padding: 20px; }
+.sparkle-app .marketspace-page .market-card-body h3 { font-size: 18px; font-weight: 600; margin-top: 8px; line-height: 1.35; }
+.sparkle-app .marketspace-page .market-card-body p { font-size: 13px; line-height: 1.65; font-weight: 400; margin: 10px 0 14px; }
+.sparkle-app .marketspace-page .template-industry { font-size: 10px; letter-spacing: .04em; color: #79797f; font-weight: 500; }
+.sparkle-app .marketspace-page .market-card-footer { margin-top: auto; font-size: 12px; }
+.sparkle-app .marketspace-page .market-card-footer button { font-size: 12px; }
+.sparkle-app .marketspace-page .market-image > span { font-size: 10px; }
+.sparkle-app .marketspace-page .market-image > img { transform: none; }
+.sparkle-app .marketspace-page .market-image:hover > img { transform: scale(1.035); }
+.sparkle-app .marketspace-page .template-style-tags,
+.studio-dialog .template-style-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
+.sparkle-app .marketspace-page .template-style-tags > span,
+.studio-dialog .template-style-tags > span {
+  padding: 4px 7px; border-radius: 5px; background: rgba(80,80,90,.035); border: 1px solid rgba(50,50,60,.055);
+  color: #6b6b72; font-size: 10px; font-weight: 400; line-height: 1.4;
+}
+.studio-dialog .ad-plan { margin-top: 26px; border-top: 1px solid rgba(30,30,40,.09); }
+.studio-dialog .ad-plan > header { padding: 22px 0 15px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.studio-dialog .ad-plan h4 { font-size: 15px; font-weight: 600; }
+.studio-dialog .ad-plan header > span { color: #909096; font-size: 10px; font-weight: 400; }
+.studio-dialog .ad-plan details { border-bottom: 1px solid rgba(30,30,40,.07); }
+.studio-dialog .ad-plan summary { display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none; padding: 15px 0; font-size: 13px; font-weight: 500; }
+.studio-dialog .ad-plan summary::-webkit-details-marker { display: none; }
+.studio-dialog .ad-plan summary svg { margin-left: auto; color: #98989f; transition: transform .2s; }
+.studio-dialog .ad-plan details[open] summary svg { transform: rotate(45deg); }
+.studio-dialog .ad-plan .ad-layer-number { font-size: 10px; font-weight: 400; color: #9999a1; font-variant-numeric: tabular-nums; }
+.studio-dialog .ad-plan details p { font-size: 12px; font-weight: 400; line-height: 1.8; color: #686870; padding: 0 24px 18px; }
+@media (max-width: 650px) {
+  .sparkle-app .marketspace-page .template-refinements { gap: 10px; }
+  .sparkle-app .marketspace-page .template-refinements label { width: 100%; justify-content: space-between; }
+  .sparkle-app .marketspace-page .template-refinements select { flex: 1; max-width: none; }
+  .sparkle-app .marketspace-page .template-result-count { margin-left: 0; }
+}

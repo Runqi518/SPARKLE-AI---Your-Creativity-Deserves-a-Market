@@ -3,11 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build --webpack",
+    "start": "node scripts/backend.cjs serve",
     "lint": "eslint",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma skills sync || exit 0",
+    "test": "node --test tests/bounty-seeds.mjs tests/campaign-templates.mjs tests/orders.mjs tests/studio-providers.mjs tests/backend-integrity.mjs",
+    "typecheck": "tsc --noEmit --incremental false",
+    "worker": "node scripts/backend.cjs worker",
+    "db:migrate": "node scripts/backend.cjs migrate",
+    "db:backup": "node scripts/backend.cjs backup",
+    "media:gc": "node scripts/backend.cjs gc",
+    "db:restore": "node scripts/backend.cjs restore"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.6",
@@ -20,7 +27,9 @@
     "sequelize": "^6.37.8",
     "sqlite3": "^6.0.1",
     "tailwind-merge": "^3.7.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "sharp": "^0.35.4",
+    "typescript": "^5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -31,7 +40,6 @@
     "@types/sqlite3": "^3.1.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "^4"
   }
 }
