@@ -2,6 +2,7 @@ import type { AgentDefinition } from "./types";
 
 export const definition: AgentDefinition = {
   "id": "product-visual-designer",
+  "coreSkillIds": ["product-visual-designer-core"],
   "name": "Product Visual Designer",
   "dependencies": [
     "creative-director"

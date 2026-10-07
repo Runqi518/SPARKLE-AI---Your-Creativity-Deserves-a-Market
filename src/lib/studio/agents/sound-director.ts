@@ -1,6 +1,7 @@
 import type { AgentDefinition } from "./types";
 
 export const definition: AgentDefinition = {
+  "coreSkillIds": ["sound-director-core"],
   "id": "sound-director",
   "name": "Sound Director",
   "dependencies": [

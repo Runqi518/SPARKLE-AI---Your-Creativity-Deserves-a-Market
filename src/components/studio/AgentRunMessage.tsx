@@ -2,6 +2,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { Plus } from "lucide-react";
 import { agentResultText, type AgentRun, type AgentSubmission } from "../../../schemas/studio-agent";
+import { coreSkillById, skillById } from "@/lib/studio/skill-registry";
 import { request } from "./data";
 
 const statusLabels = { queued: "Queued", running: "Working", succeeded: "Complete", needs_input: "Needs your input", failed: "Failed", blocked: "Waiting for input" };
@@ -43,6 +44,7 @@ export function AgentRunMessage({ runId, submission, onUpdate, onAdd }: {
       {run.tasks.map(task => <details className="agent-task" key={task.agentId} open={task.status === "needs_input" || task.status === "failed" || task.status === "running"}>
         <summary><strong>{task.name}</strong><span data-status={task.status}>{statusLabels[task.status]}</span></summary>
         {task.dependencies.length > 0 && <small>Receives from {task.dependencies.map(id => run.tasks.find(other => other.agentId === id)?.name).join(", ")}</small>}
+        {!!task.activeSkillIds?.length && <small>Active skills: {task.activeSkillIds.map(id => coreSkillById(id)?.name || skillById(id)?.name || id).join(", ")}</small>}
         {task.error && <p className="agent-task-error">{task.error}</p>}
         {task.result && <>
           <p>{task.result.summary}</p>

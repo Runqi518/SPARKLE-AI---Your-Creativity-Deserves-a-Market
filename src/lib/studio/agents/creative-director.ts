@@ -2,6 +2,7 @@ import type { AgentDefinition } from "./types";
 
 export const definition: AgentDefinition = {
   "id": "creative-director",
+  "coreSkillIds": ["brief-interpretation", "creative-director-core"],
   "name": "Creative Director",
   "dependencies": [],
   "purpose": "Turn the user brief into actionable advertising decisions: objective, audience, single proposition and production priorities.",

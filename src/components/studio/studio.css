@@ -3407,6 +3407,14 @@
 
 /* Agent execution is separate from the skill composer. */
 .agent-run { margin-top:10px; }
+.active-skill-summary { display:grid; gap:4px; margin-top:10px; padding:9px 11px; border:1px solid rgba(0,0,0,.08); border-radius:10px; background:rgba(255,255,255,.45); font-size:11px; line-height:1.5; }
+.active-skill-summary strong { font-size:11px; font-weight:600; }
+.active-skill-summary small { color:var(--muted); overflow-wrap:anywhere; }
+.skills-library-controls { display:grid; gap:8px; padding:9px; }
+.skills-library-controls input { width:100%; min-width:0; padding:8px 10px; border:1px solid rgba(0,0,0,.13); border-radius:8px; background:rgba(255,255,255,.8); color:inherit; font:inherit; }
+.skill-mode-actions { display:flex; gap:6px; }
+.skill-mode-actions button { flex:1; padding:7px 8px; border:1px solid rgba(0,0,0,.12); border-radius:7px; background:rgba(255,255,255,.55); font-size:11px; }
+.skill-mode-actions button[aria-pressed="true"] { background:#272626; color:#fff; }
 .agent-run-status { font-size:11px; color:var(--muted); margin-bottom:9px; font-weight:400; }
 .agent-task { border:1px solid rgba(255,255,255,.75); border-radius:12px; background:rgba(255,255,255,.52); margin-top:7px; padding:10px; }
 .agent-task summary { display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:pointer; list-style:none; }

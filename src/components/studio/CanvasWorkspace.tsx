@@ -51,6 +51,7 @@ import { StudioShell } from "./StudioShell";
 import { Dialog } from "./Dialog";
 import { AgentRunMessage } from "./AgentRunMessage";
 import { agentRunText, type AgentRun, type AgentSubmission } from "../../../schemas/studio-agent";
+import { coreSkillRegistry, skillRegistry } from "@/lib/studio/skill-registry";
 import { GenerationNode, NodeActions, kindIcons as typeIcons, defaultGenerationOptions } from "./GenerationNode";
 import type { GenerationCandidate, ProviderSummary, StudioJob } from "../../../schemas/studio-generation";
 import {
@@ -113,6 +114,7 @@ function CanvasEditor({ id }: { id: string }) {
   const [panel, setPanel] = useState<"agents" | "skills" | null>(null);
   const [team, setTeam] = useState<string[]>([agents[0].name]);
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
+  const [skillSearch, setSkillSearch] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [executionMode, setExecutionMode] = useState<"agents" | "skills">("agents");
   const [prompt, setPrompt] = useState("");
@@ -222,6 +224,7 @@ function CanvasEditor({ id }: { id: string }) {
         const cachedChat = readLocal<{
           team: string[];
           skills: string[];
+          attachedSkillIds?: string[];
           messages: Message[];
           references?: string[];
           executionMode?: "agents" | "skills";
@@ -232,7 +235,9 @@ function CanvasEditor({ id }: { id: string }) {
         setChatReady(true);
         if (savedChat) {
           setTeam([...new Set(savedChat.team)].filter(name => agents.some(agent => agent.name === name)));
-          setActiveSkills([...new Set(savedChat.skills)].filter(name => skills.some(skill => skill.name === name)));
+          setActiveSkills(savedChat.attachedSkillIds?.length
+            ? skillRegistry.filter(skill => savedChat.attachedSkillIds?.includes(skill.id)).map(skill => skill.name)
+            : [...new Set(savedChat.skills)].filter(name => skills.some(skill => skill.name === name)));
           setMessages(savedChat.messages);
           setExecutionMode(savedChat.executionMode === "skills" && savedChat.skills.length ? "skills" : "agents");
           setReferencedIds((savedChat.references || []).filter(nodeId => normalized.some(node => node.id === nodeId)).slice(0, 16));
@@ -388,7 +393,8 @@ function CanvasEditor({ id }: { id: string }) {
   }, []);
   useEffect(() => {
     if (ready && chatReady) {
-      const state = { team, skills: activeSkills, executionMode, messages, references: referencedIds.filter(nodeId => nodes.some(node => node.id === nodeId)) };
+      const attachedSkillIds = skillRegistry.filter(skill => activeSkills.includes(skill.name)).map(skill => skill.id);
+      const state = { team, skills: activeSkills, attachedSkillIds, executionMode, messages, references: referencedIds.filter(nodeId => nodes.some(node => node.id === nodeId)) };
       const timer = setTimeout(() => {
         chatQueue.current = chatQueue.current.catch(() => {}).then(async () => {
           try {
@@ -401,6 +407,7 @@ function CanvasEditor({ id }: { id: string }) {
         storeLocal(`sparkle:chat:${id}`, {
           team,
           skills: activeSkills,
+          attachedSkillIds,
           executionMode,
           messages,
           references: referencedIds.filter(nodeId => nodes.some(node => node.id === nodeId)),
@@ -645,7 +652,7 @@ function CanvasEditor({ id }: { id: string }) {
     };
     const userMessage: Message = { role: "user", content: input };
     if (executionMode === "agents") {
-      const submission: AgentSubmission = { ...source, requestId: crypto.randomUUID(), projectId: id, agents: [...team] };
+      const submission: AgentSubmission = { ...source, requestId: crypto.randomUUID(), projectId: id, agents: [...team], attachedSkillIds: skillRegistry.filter(skill => activeSkills.includes(skill.name)).map(skill => skill.id) };
       // Retain the exact request for safe retries and recovery after navigation.
       setMessages(current => [...current, userMessage, { role: "assistant", label: "Agents", content: "", requestId: submission.requestId, agentInput: submission }]);
       return;
@@ -1111,10 +1118,10 @@ function CanvasEditor({ id }: { id: string }) {
               </div>
               <button
                 className="skills-trigger"
-                onClick={() => { setExecutionMode("skills"); setPanel(panel === "skills" ? null : "skills"); }}
+                onClick={() => { setPanel(panel === "skills" ? null : "skills"); }}
               >
                 <span>
-                  Skills{" "}
+                  Skills Library{" "}
                   <small>
                     {activeSkills.length
                       ? `${activeSkills.length} added`
@@ -1131,7 +1138,7 @@ function CanvasEditor({ id }: { id: string }) {
                       onClick={() => {
                         const next = activeSkills.filter((s) => s !== skill);
                         setActiveSkills(next);
-                        setExecutionMode(next.length ? "skills" : "agents");
+                        if (!next.length) setExecutionMode("agents");
                       }}
                     >
                       {skill}
@@ -1140,6 +1147,11 @@ function CanvasEditor({ id }: { id: string }) {
                   ))}
                 </div>
               )}
+              <div className="active-skill-summary">
+                <strong>{executionMode === "agents" ? `Active team: ${team.join(", ") || "none"}` : "Skills-only run"}</strong>
+                {executionMode === "agents" && <small>Core: {coreSkillRegistry.filter(skill => team.some(name => agents.find(agent => agent.name === name)?.id === skill.agentId)).map(skill => skill.name).join(", ") || "Role definition only"}</small>}
+                <small>Attached: {activeSkills.join(", ") || "none"}</small>
+              </div>
             </div>
             {panel && (
               <div className="assistant-picker" role="region" aria-label={panel === "agents" ? "Available agents" : "Available skills"}>
@@ -1150,8 +1162,19 @@ function CanvasEditor({ id }: { id: string }) {
                     <X size={15} />
                   </button>
                 <div className="picker-list">
-                {(panel === "agents" ? agents : skills).map((item) => {
+                {panel === "skills" && <div className="skills-library-controls">
+                  <input aria-label="Search skills" placeholder="Search skills" value={skillSearch} onChange={event => setSkillSearch(event.target.value)} />
+                  <div className="skill-mode-actions">
+                    <button aria-pressed={executionMode === "agents"} onClick={() => setExecutionMode("agents")}>Use with team</button>
+                    <button aria-pressed={executionMode === "skills"} onClick={() => setExecutionMode("skills")}>Run skills only</button>
+                  </div>
+                </div>}
+                {(panel === "agents" ? agents : skills.filter(item => {
+                  const meta = skillRegistry.find(skill => skill.id === item.id)!;
+                  return `${item.name} ${item.role} ${meta.category}`.toLowerCase().includes(skillSearch.toLowerCase());
+                })).map((item) => {
                   const list = panel === "agents" ? team : activeSkills;
+                  const metadata = panel === "skills" ? skillRegistry.find(skill => skill.id === item.id) : null;
                   return (
                     <button
                       className="picker-item"
@@ -1162,12 +1185,19 @@ function CanvasEditor({ id }: { id: string }) {
                           ? list.filter((n) => n !== item.name)
                           : [...list, item.name];
                         if (panel === "agents") { setTeam(next); setExecutionMode("agents"); }
-                        else { setActiveSkills(next); setExecutionMode(next.length ? "skills" : "agents"); }
+                        else {
+                          if (next.length > 3) { setNotice("Attach up to three skills per workflow."); return; }
+                          setActiveSkills(next);
+                          if (!next.length) setExecutionMode("agents");
+                        }
                       }}
                     >
                       <span>
                         <strong>{item.name}</strong>
                         <small>{item.role}</small>
+                        {panel === "agents" && <small>Core: {coreSkillRegistry.filter(skill => skill.agentId === item.id).map(skill => skill.name).join(", ") || "Role definition"}</small>}
+                        {metadata && <small>{metadata.category} · {metadata.trigger}</small>}
+                        {metadata && <small>Compatible: {metadata.compatibleAgents.length === agents.length ? "All agents" : metadata.compatibleAgents.map(agentId => agents.find(agent => agent.id === agentId)?.name).filter(Boolean).join(", ")}</small>}
                       </span>
                       {list.includes(item.name) ? (
                         <Check size={16} />

@@ -10,6 +10,7 @@ export type AgentSubmission = {
   projectId: string;
   prompt: string;
   agents: string[];
+  attachedSkillIds?: string[];
   context: { id?: string; label: string; kind: string; content?: string; caption?: string; url?: string }[];
   history: { role: "user" | "assistant"; content: string; label?: string }[];
 };
@@ -17,6 +18,7 @@ export type AgentTask = {
   agentId: string;
   name: string;
   dependencies: string[];
+  activeSkillIds?: string[];
   status: "queued" | "running" | "succeeded" | "needs_input" | "failed" | "blocked";
   result?: AgentResult;
   error?: string;
@@ -28,6 +30,7 @@ export type AgentRun = {
   requestId: string;
   projectId: string;
   prompt: string;
+  attachedSkillIds?: string[];
   status: "queued" | "running" | "succeeded" | "needs_input" | "failed";
   tasks: AgentTask[];
   createdAt: string;

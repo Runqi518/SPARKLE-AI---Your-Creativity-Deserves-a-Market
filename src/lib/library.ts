@@ -84,7 +84,7 @@ export async function loadChat(projectId: string) {
   return { state: row?.get("state") ?? null, revision: Number(row?.get("revision") || 0) };
 }
 export async function saveChat(projectId: string, raw: unknown) {
-  const schema = z.object({ revision: z.number().int().nonnegative().optional(), state: z.object({ team: z.array(z.string().max(100)).max(8), skills: z.array(z.string().max(100)).max(16), executionMode: z.enum(["agents", "skills"]).optional(), references: z.array(z.string().max(160)).max(16).optional(), messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(30000) }).passthrough()).max(1000) }) });
+  const schema = z.object({ revision: z.number().int().nonnegative().optional(), state: z.object({ team: z.array(z.string().max(100)).max(8), skills: z.array(z.string().max(100)).max(16), attachedSkillIds: z.array(z.string().max(100)).max(16).optional(), executionMode: z.enum(["agents", "skills"]).optional(), references: z.array(z.string().max(160)).max(16).optional(), messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(30000) }).passthrough()).max(1000) }) });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw new StudioError(parsed.error.issues[0].message);
   await loadChat(projectId);

@@ -43,6 +43,17 @@ export const agents = [
 ] as const;
 export type StudioAgentId = (typeof agents)[number]["id"];
 export const skills = [
+  { id: "consumer-insight", name: "Consumer Insight", role: "Develop an evidence-backed audience tension and testable creative implication." },
+  { id: "platform-strategy", name: "Platform Strategy", role: "Plan placement-specific attention, branding, framing and delivery." },
+  { id: "performance-creative", name: "Performance Creative", role: "Diagnose response stages and design controlled creative experiments." },
+  { id: "creative-concept", name: "Creative Concept", role: "Develop repeatable, brand-attributable creative territories." },
+  { id: "prompt-compiler", name: "Prompt Compiler", role: "Translate approved shot direction into supported model prompts and controls." },
+  { id: "consistency", name: "Consistency", role: "Manage visual identity and state continuity across generated shots." },
+  { id: "creative-quality", name: "Creative Quality", role: "Evaluate clarity, relevance, originality and production feasibility." },
+  { id: "generation-quality", name: "Generation Quality", role: "Inspect actual generated media for identity, motion and temporal defects." },
+  { id: "commercial-ad-strategy", name: "Commercial Ad Strategy", role: "Turn a business objective and audience tension into a defensible ad proposition and creative brief." },
+  { id: "brand-strategy", name: "Brand Strategy", role: "Define usable brand cues, message hierarchy and claim boundaries for a campaign." },
+  { id: "product-launch", name: "Product Launch", role: "Plan a launch narrative with proof, reveal, adoption barrier and channel roles." },
   {
     id: "reference-breakdown",
     name: "Reference breakdown",

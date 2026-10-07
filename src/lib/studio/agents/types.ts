@@ -1,7 +1,9 @@
 import type { StudioAgentId } from "../capabilities";
+import type { CoreSkillId } from "../skill-registry";
 
 export type AgentDefinition = {
   id: StudioAgentId;
+  coreSkillIds?: CoreSkillId[];
   name: string;
   dependencies: StudioAgentId[];
   purpose: string;

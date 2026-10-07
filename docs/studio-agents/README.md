@@ -1,6 +1,6 @@
 # Sparkle Agents
 
-Eight independent role workflows, each with its own objective, required inputs, execution steps, delivery format and checks. Definitions live in `src/lib/studio/agents/` and do not reference skill definitions.
+Eight independent role workflows, each with its own objective, required inputs, execution steps, delivery format and checks. Definitions live in `src/lib/studio/agents/`. Each linked Agent guide now includes the complete core methods loaded by that Agent at runtime. All eight Agents declare core skill IDs resolved through the shared loader. Regenerate these guides with `python3 scripts/build-studio-agent-docs.py` after changing a definition or core skill.
 
 | Agent | Independent deliverables |
 | --- | --- |
@@ -15,7 +15,7 @@ Eight independent role workflows, each with its own objective, required inputs, 
 
 ## Execution
 
-After selecting a team through Add agent and sending a request, the backend creates a persistent run and immediately returns `202`. Roles execute in dependency order. Each selected role makes an independent text-model call and receives the original brief plus only its declared, selected and successfully completed dependencies. Unselected roles do not run automatically. Skills use the separate `/api/studio/skills/run` endpoint and do not start agents; both endpoints reject mixed submissions. The most recently used team or skill selection determines the input's execution mode, which is saved with the conversation. There is no bottom Agents / Skills toggle.
+After selecting a team through Add agent and sending a request, the backend creates a persistent run and immediately returns `202`. Roles execute in dependency order. Each selected role makes an independent text-model call and receives the original brief plus only its declared, selected and successfully completed dependencies. Unselected roles do not run automatically. Each role loads its core skills and compatible attached skills; the run records their IDs. The separate `/api/studio/skills/run` endpoint remains available through an explicit skills-only mode. The chosen mode is saved with the conversation.
 
 Each role returns structured JSON: `status`, `summary`, its own `sections`, `assumptions` and `questions`. The backend validates JSON, size, required sections and necessary questions before handing outputs to downstream roles. Models perform role-specific self-checks; format validation does not establish factual accuracy or advertising performance.
 
@@ -30,7 +30,7 @@ Each role returns structured JSON: `status`, `summary`, its own `sections`, `ass
 ## Endpoints
 
 - `GET /api/studio/agents`: complete definitions for eight roles.
-- `POST /api/studio/assist`: `requestId`, `projectId`, `prompt`, `agents` (names), optional `context` and `history`; returns `{run}`.
+- `POST /api/studio/assist`: `requestId`, `projectId`, `prompt`, `agents` (names), optional `attachedSkillIds`, `context` and `history`; returns `{run}`.
 - `GET /api/studio/assist?projectId=...`: the latest 30 project runs.
 - `GET /api/studio/assist/:id`: role states, outputs and errors.
 - `POST /api/studio/skills/run`: `prompt`, `skills`, optional `context` and `history`; returns `{content}`.

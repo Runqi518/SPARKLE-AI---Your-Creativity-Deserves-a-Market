@@ -1,6 +1,7 @@
 import type { AgentDefinition } from "./types";
 
 export const definition: AgentDefinition = {
+  "coreSkillIds": ["final-editor-core"],
   "id": "final-editor",
   "name": "Final Editor",
   "dependencies": [

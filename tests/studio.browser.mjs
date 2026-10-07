@@ -259,7 +259,9 @@ try {
     assert.equal(assistRequests.at(-1).context[0].label, "A tested idea");
     assert.ok(assistRequests.at(-1).agents.includes("Scriptwriter"));
     assert.equal(assistRequests.at(-1).skills, undefined);
+    assert.deepEqual(assistRequests.at(-1).attachedSkillIds, ["caption-polish"]);
     await page.locator(".skills-trigger").click();
+    await page.getByRole("button", { name: "Run skills only" }).click();
     await page.getByRole("button", { name: "Close picker" }).click();
     await page.getByLabel("Run your selected skills").fill("Polish the caption independently.");
     await page.getByRole("button", { name: "Send message" }).click();

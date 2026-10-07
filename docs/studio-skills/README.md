@@ -1,38 +1,32 @@
-# Sparkle Studio Skills
+# Sparkle Studio skill library
 
-There are 16 skills: four original workflows and twelve additions. The agent catalog retains eight roles.
+The canonical, English-language skill source is [`src/lib/studio/skills/library`](../../src/lib/studio/skills/library). Each capability has a real `SKILL.md` with frontmatter, a professional model, evidence and input contract, decision rules, operating procedure, output contract, failure recovery, a rubric and domain-specific decision controls. The skills contain no illustrative cases or external citation sections. The build script [`scripts/build-studio-skill-library.py`](../../scripts/build-studio-skill-library.py) produces 30 L0–L4 capability files, 18 specialized workflows for older saved skill IDs, and eight Agent-core specializations. [`scripts/studio_skill_specialization_notes.py`](../../scripts/studio_skill_specialization_notes.py) holds the dedicated procedures for named workflows. Re-run the build script after editing source data; direct edits to generated files will be replaced.
 
-Select skills with the plus button at the top of AI Studio Partner and send a request. The backend adds each selected skill's inputs, execution steps, deliverables and quality checks to the text model's system instructions. Multiple skills can run together; duplicate selection does not duplicate instructions. Add agent returns to team execution. The workflows remain independent.
+The runtime loader reads these files only for a selected skill or Agent core. It strips frontmatter and checks size. Old TypeScript checklist fallback and flat Markdown content were removed. The application currently exposes 27 optional standalone workflows, including eight new canonical entries. The older workflow IDs remain selectable for saved campaigns and now load full specialization files.
 
-Skills produce text, creative plans, review findings and prompts. Canvas generation nodes continue to produce images and videos. Asset links alone do not automatically provide video frames or image analysis; workflows depend on supplied descriptions and readable information.
+The [research map](source-map.md) lists all 30 canonical capabilities and the source-to-heuristic relationships for maintainers. It is outside the runtime skill library and is not included in Agent prompts.
 
-## Added skills
+The [full inventory](inventory.md) links every skill page and shows its layer, placement and current size for direct review.
 
-- [Audience & Hook Strategy](audience-hook-strategy.md): audience insights, advertising angles and opening hooks.
-- [UGC Ad Writer](ugc-ad-writer.md): natural creator-friendly scripts with genuine product value and action.
-- [Product Demo Planner](product-demo-planner.md): filmable, understandable and verifiable demonstrations.
-- [Shot List Builder](shot-list-builder.md): executable shot lists for filming or generation.
-- [Visual Consistency Check](visual-consistency-check.md): cross-shot continuity based on available evidence.
-- [Platform Format Adapter](platform-format-adapter.md): placement-specific visuals, pacing and copy.
-- [CTA & Offer Writer](cta-offer-writer.md): concise calls to action with complete offer conditions.
-- [Brand Voice Adapter](brand-voice-adapter.md): brand-consistent copy preserving facts and intent.
-- [Compliance & Claims Review](compliance-claims-review.md): unsupported or misleading claims and review needs.
-- [Accessibility Pass](accessibility-pass.md): caption readability and muted-viewing comprehension.
-- [Creative Variant Generator](creative-variant-generator.md): distinct, comparable and testable creative routes.
-- [Ad Performance Review](ad-performance-review.md): diagnosis and test plans from actual campaign data.
+The 56 named Markdown pages in this directory are generated mirrors of the runtime `SKILL.md` bodies. They let reviewers inspect the full instructions at the GitHub paths used by the earlier documentation. The runtime library remains the source of truth; regenerate both views with `python3 scripts/build-studio-skill-library.py`.
 
-## Original skills
+## Invocation boundary
 
-- [Reference breakdown](reference-breakdown.md): reusable pacing, shot structure and expression.
-- [Motion graphics](motion-graphics.md): editable text, data and graphic animation plans.
-- [Caption polish](caption-polish.md): clear, readable and brand-consistent captions.
-- [Brand check](brand-check.md): advertising copy and concepts checked against a brand brief.
+| Layer | Placement | Current execution |
+| --- | --- | --- |
+| L0 Planner, Tool Use, Memory & Context, Critic & Recovery | Runtime policy, never an optional UI attachment | Partial: ordered tasks, provider calls, saved context and validation exist; dynamic replanning and bounded media repair are specifications. |
+| L1 Brief Interpretation | Creative Director core | Loaded on every Creative Director task. |
+| L1 Consumer Insight, Brand Strategy, Ad Strategy, Platform Strategy, Performance Creative | Standalone | Selectable textual workflows; no live platform-research ingestion inside an Agent run. |
+| L2 Creative Concept, Reference Analysis | Standalone | Selectable textual workflows. |
+| L2 Copywriting, Creative Director, Director, Cinematography, Art Direction, Editing, Sound | Agent core | Loaded through the corresponding specialist role; Storyboard Designer carries Director and Cinematography. |
+| L3 Prompt Compiler, Consistency | Standalone | Generate plans/prompts and inspect supplied references. |
+| L3 Model Routing, Image Generation, Video Generation, Lip-sync & Audio, QC & Regeneration | Provider/runtime specifications | Detailed methods are documented; current provider nodes execute available generation. Vendor comparison, lip sync and automatic regeneration are not yet automated. |
+| L4 Creative Quality, Brand Compliance, Performance Evaluation, Generation Quality | Standalone | Textual review or review of actually supplied media and metrics; no automatic media scoring loop. |
 
-## Implementation
+`Agent role + core methods + up to three compatible selected methods + source context → structured Agent output` is the present execution model. Skills cannot call a provider themselves. A generated prompt, shot plan or QC recommendation is not a rendered or approved asset.
 
-- Catalog: `src/lib/studio/capabilities.ts`
-- Complete instructions: `src/lib/studio/skill-instructions.ts`
-- Execution: `POST /api/studio/skills/run`
-- Definition lookup: `GET /api/studio/skills`
+## Source interpretation
 
-The skill endpoint accepts only skills, not agents, and injects only selected definitions. Agents execute through separate endpoints and per-role runs; see [Agent workflows](../studio-agents/README.md). Missing data must be identified or requested, never fabricated. Keep documentation synchronized with executable definitions.
+The common planning chain is **Objective → Audience → Insight → Proposition → Creative Angle → Proof → Execution → CTA → Validation**. It is Sparkle's synthesis of case study structure, effectiveness research, platform advice and production practice; no single source prescribes it. A platform best practice is a hypothesis to test, not an outcome guarantee. A campaign case illustrates a mechanism, not a transferable performance claim. A benchmark identifies QC dimensions, not approval of a branded film. Provenance stays in the maintainer research map rather than the executable skill instructions.
+
+Review a skill against a real campaign before expanding a rule. Check current provider and platform documentation before relying on exact specifications, model features or prices. Keep verified facts and assumptions distinct, and compare actual outputs with the skill's hard gates and rubric.

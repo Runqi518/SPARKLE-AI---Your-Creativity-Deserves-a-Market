@@ -11,11 +11,13 @@ import { assistantInputFields, assistantSource } from "./assistant-input";
 import { configFingerprint, redact, requireProvider, type ProviderConfig } from "./config";
 import { StudioError } from "./http";
 import { withActor } from "../actor";
+import { skillById } from "./skill-registry";
 
 const inputSchema = z.object({
   ...assistantInputFields,
   requestId: z.string().uuid(), projectId: z.string().min(1).max(160),
   agents: z.array(z.string().refine(name => agents.some(agent => agent.name === name), "Choose a supported agent.")).min(1).max(agents.length),
+  attachedSkillIds: z.array(z.string().refine(id => Boolean(skillById(id)), "Choose a supported skill.")).max(3).refine(ids => new Set(ids).size === ids.length, "Select each skill once.").default([]),
 }).strict();
 type Row = { id: string; requestId: string; inputHash: string; projectId: string; prompt: string; source: string; configHash: string; status: AgentRun["status"]; tasks: AgentTask[]; deadline: number; dispatchDeadline: number; createdAt: Date; updatedAt: Date };
 type RunModel = Model<Row, Partial<Row>>;
@@ -50,7 +52,7 @@ function publicRun(row: Row): AgentRun {
     if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, safe(item)]));
     return value;
   }
-  return safe({ id: row.id, requestId: row.requestId, projectId: row.projectId, prompt: row.prompt, status: row.status, tasks: row.tasks,
+  return safe({ id: row.id, requestId: row.requestId, projectId: row.projectId, prompt: row.prompt, attachedSkillIds: JSON.parse(row.source).attachedSkillIds || [], status: row.status, tasks: row.tasks,
     createdAt: new Date(row.createdAt).toISOString(), updatedAt: new Date(row.updatedAt).toISOString() }) as AgentRun;
 }
 async function expire(row: Row) {
@@ -80,8 +82,14 @@ export async function createAgentRun(raw: unknown): Promise<{ run: AgentRun; con
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) throw new StudioError(parsed.error.issues[0].message);
   const input = parsed.data;
-  const source = assistantSource(input);
+  const source = JSON.stringify({ ...JSON.parse(assistantSource(input)), attachedSkillIds: input.attachedSkillIds });
   const selected = agentDefinitions.filter(agent => input.agents.includes(agent.name));
+  for (const id of input.attachedSkillIds) {
+    const skill = skillById(id)!;
+    if (!selected.some(agent => skill.compatibleAgents.includes(agent.id))) throw new StudioError(`${skill.name} is not compatible with the selected agents.`);
+    if (skill.dependencies.some(required => !input.attachedSkillIds.includes(required))) throw new StudioError(`${skill.name} requires another skill to be attached.`);
+    if (skill.conflicts.some(other => input.attachedSkillIds.includes(other))) throw new StudioError(`${skill.name} conflicts with another attached skill.`);
+  }
   const inputHash = createHash("sha256").update(JSON.stringify({ projectId: input.projectId, source, agents: selected.map(agent => agent.id) })).digest("hex");
   await requireProject(input.projectId); await sync();
   const existing = await StudioAgentRun.findOne({ where: { requestId: input.requestId } });
@@ -95,7 +103,7 @@ export async function createAgentRun(raw: unknown): Promise<{ run: AgentRun; con
     id: randomUUID(), requestId: input.requestId, inputHash, projectId: input.projectId, prompt: input.prompt, source,
     configHash: configFingerprint(config), status: "queued", dispatchDeadline: now + 300000,
     deadline: now + Math.min(570000, config.timeoutMs * selected.length + 30000),
-    tasks: selected.map(agent => ({ agentId: agent.id, name: agent.name, dependencies: agent.dependencies.filter(id => selected.some(other => other.id === id)), status: "queued" })),
+    tasks: selected.map(agent => ({ agentId: agent.id, name: agent.name, activeSkillIds: [...(agent.coreSkillIds || []), ...input.attachedSkillIds.filter(id => skillById(id)!.compatibleAgents.includes(agent.id))], dependencies: agent.dependencies.filter(id => selected.some(other => other.id === id)), status: "queued" })),
   };
   try { return { run: publicRun((await StudioAgentRun.create(row)).get({ plain: true })), config }; }
   catch (error) {
@@ -153,7 +161,7 @@ export async function runAgents(id: string, config: ProviderConfig) {
         const remaining = row.deadline - Date.now();
         if (remaining <= 100) throw new StudioError("Agent execution time limit reached.", 504);
         const definition = agentDefinitions.find(agent => agent.id === task.agentId)!;
-        task.result = await executeAgent(definition, row.source, dependencies, { ...config, timeoutMs: Math.min(config.timeoutMs, remaining) });
+        task.result = await executeAgent(definition, row.source, dependencies, { ...config, timeoutMs: Math.min(config.timeoutMs, remaining) }, JSON.parse(row.source).attachedSkillIds || []);
         task.status = task.result.status === "ready" ? "succeeded" : "needs_input";
       } catch (error) {
         task.status = "failed";

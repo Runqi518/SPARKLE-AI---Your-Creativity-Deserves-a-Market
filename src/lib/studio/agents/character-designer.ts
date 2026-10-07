@@ -1,6 +1,7 @@
 import type { AgentDefinition } from "./types";
 
 export const definition: AgentDefinition = {
+  "coreSkillIds": ["character-designer-core"],
   "id": "character-designer",
   "name": "Character Designer",
   "dependencies": [

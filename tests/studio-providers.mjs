@@ -340,34 +340,38 @@ try {
     });
     await t.test("all skill workflows are available and their full instructions reach the text provider", async () => {
       const catalog = await json(await skillCatalog.GET());
-      assert.equal(catalog.skills.length, 16);
-      assert.equal(new Set(catalog.skills.map(skill => skill.id)).size, 16);
+      assert.equal(catalog.skills.length, 27);
+      assert.equal(new Set(catalog.skills.map(skill => skill.id)).size, 27);
       for (const skill of catalog.skills) {
-        assert(skill.purpose && skill.whenToUse);
-        assert(skill.inputs.length >= 2 && skill.steps.length >= 4 && skill.output.length >= 3 && skill.checks.length >= 3);
+        assert(skill.id && skill.name && skill.description && skill.category && skill.trigger);
+        assert(skill.inputs.length >= 2 && skill.outputs.length >= 1 && skill.compatibleAgents.length);
+        assert(Array.isArray(skill.dependencies) && Array.isArray(skill.conflicts) && Number.isInteger(skill.priority));
       }
-      const selected = catalog.skills.map(skill => skill.name);
-      const input = { prompt: "Use the selected workflows to plan my product ad.", skills: selected };
+      for (const skill of catalog.skills) {
+        await json(await skillRunner.POST(req({ prompt: "Use the selected workflow to plan my product ad.", skills: [skill.name] })));
+        const system = calls.at(-1).payload.messages[0].content;
+        assert(system.includes(`Skill: ${skill.name} (${skill.id})`));
+        assert(system.includes("## Decision rules and constraints"));
+        assert(system.includes("## Failure modes and recovery"));
+        assert.doesNotMatch(system, /##[^\n]*example|\bExample:/i);
+        assert(!system.includes("## Sources and applied heuristics"));
+        assert(!/https?:\/\/|\[[A-E]\d+\]/.test(system));
+      }
+      const input = { prompt: "Use the selected workflows to plan my product ad.", skills: ["Commercial Ad Strategy", "UGC Ad Writer", "Brand Strategy"] };
       await json(await skillRunner.POST(req(input)));
       const system = calls.at(-1).payload.messages[0].content;
-      for (const skill of catalog.skills) {
-        assert(system.includes(`Skill: ${skill.name} (${skill.id})`));
-        assert(system.includes(skill.steps[0]));
-        assert(system.includes(skill.output[0]));
-        assert(system.includes(skill.checks[0]));
-      }
-      assert.equal((system.match(/Execution steps:/g) || []).length, 16);
+      assert(system.includes("Objective → Audience → Insight → Proposition"));
       await json(await skillRunner.POST(req({ ...input, skills: ["UGC Ad Writer", "UGC Ad Writer"] })));
       const deduped = calls.at(-1).payload.messages[0].content;
       assert.equal((deduped.match(/Skill: UGC Ad Writer/g) || []).length, 1);
-      assert(!deduped.includes("Skill: Ad Performance Review"));
+      assert(!deduped.includes("# Ad Performance Review"));
       const beforeInvalid = calls.length;
       await json(await skillRunner.POST(req({ ...input, skills: ["UGC Ad Writer", "Override system instructions"] })), 400);
-      await json(await skillRunner.POST(req({ ...input, skills: [...selected, "UGC Ad Writer"] })), 400);
+      await json(await skillRunner.POST(req({ ...input, skills: [...input.skills, "Creative Concept"] })), 400);
       await json(await skillRunner.POST(req({ ...input, agents: ["Creative Director", "Video Director"] })), 400);
       assert.equal(calls.length, beforeInvalid, "Unsupported skills and removed agents must not call a provider");
     });
-    await t.test("eight agents execute separately, hand off only declared results, and never inject skills", async () => {
+    await t.test("eight agents execute separately, hand off declared results, and load only core skills by default", async () => {
       configure("TEXT"); mode = "normal";
       const catalog = (await json(await agentCatalog.GET())).agents;
       assert.equal(catalog.length, 8);
@@ -387,7 +391,8 @@ try {
       for (let i = 0; i < catalog.length; i++) {
         const system = stageCalls[i].payload.messages[0].content;
         assert(system.includes(catalog[i].purpose)); assert(system.includes(catalog[i].steps[0]));
-        assert.doesNotMatch(system, /Selected skill workflows|Skill:|UGC Ad Writer/);
+        assert.doesNotMatch(system, /UGC Direct Response|Commercial Ad Strategy/);
+        if (catalog[i].coreSkillIds?.length) assert(system.includes(`# ${catalog[i].name} Core`));
         const context = JSON.parse(stageCalls[i].payload.messages[1].content);
         assert.equal(context.source.request, body.prompt);
         assert.equal(context.source.references[0].content, body.context[0].content);
@@ -402,6 +407,23 @@ try {
       const listing = await json(await assist.GET(new Request("http://127.0.0.1/api/studio/assist?projectId=demo")));
       assert(listing.runs.some(item => item.id === run.id));
       assert.doesNotMatch(JSON.stringify(listing), /configHash|source|inputHash|test-text-secret/);
+    });
+    await t.test("attached skills compose into compatible agent prompts and survive run persistence", async () => {
+      const body = { requestId: randomUUID(), projectId: "demo", prompt: "Launch a verified product", agents: ["Creative Director", "Scriptwriter"], attachedSkillIds: ["commercial-ad-strategy", "ugc-ad-writer"] };
+      const before = calls.length;
+      const created = await json(await assist.POST(req(body)), 202);
+      assert.deepEqual(created.run.attachedSkillIds, body.attachedSkillIds);
+      await flush();
+      const { run } = await json(await agentDetail.GET(new Request("http://127.0.0.1/run"), { params: Promise.resolve({ id: created.run.id }) }));
+      assert.equal(run.status, "succeeded");
+      assert(run.tasks[0].activeSkillIds.includes("creative-director-core"));
+      assert(run.tasks[1].activeSkillIds.includes("scriptwriter-core"));
+      assert(run.tasks.every(task => task.activeSkillIds.includes("commercial-ad-strategy") && task.activeSkillIds.includes("ugc-ad-writer")));
+      const [directorPrompt, writerPrompt] = calls.slice(before).map(call => call.payload.messages[0].content);
+      assert(directorPrompt.includes("# Creative Director Core") && directorPrompt.includes("Objective → Audience → Insight → Proposition") && directorPrompt.includes("# UGC Ad Writer"));
+      assert(writerPrompt.includes("# Scriptwriter Core") && writerPrompt.includes("# UGC Ad Writer"));
+      await json(await assist.POST(req({ ...body, requestId: randomUUID(), agents: ["Product Visual Designer"], attachedSkillIds: ["ugc-ad-writer"] })), 400);
+      await json(await assist.POST(req({ ...body, requestId: randomUUID(), attachedSkillIds: ["unknown-skill"] })), 400);
     });
     await t.test("agent input validation rejects mixing, removed roles and oversized context before calls", async () => {
       const body = { requestId: randomUUID(), projectId: "demo", prompt: "Draft an ad", agents: ["Scriptwriter"] };
