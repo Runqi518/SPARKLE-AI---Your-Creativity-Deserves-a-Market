@@ -1,38 +1,38 @@
 # Ad Performance Review
 
-标识：`ad-performance-review`
+Identifier: `ad-performance-review`
 
-依据用户提供的真实投放数据诊断素材表现，并提出可执行的下一轮测试计划。
+Diagnose creative performance from actual user-supplied campaign data and propose actionable tests.
 
-## 适用场景
+## When to use
 
-已有广告投放数据，需要判断开场、点击、转化或素材疲劳问题。
+Analyzing opening retention, clicks, conversion or creative fatigue from campaign data.
 
-## 输入资料
+## Inputs
 
-- 按素材或广告组的花费、曝光、观看、点击、转化和收入数据
-- 时间范围、归因窗口、币种和指标定义
-- 受众、版位、预算、优惠与落地页差异
-- 广告脚本、创意版本、基准或历史数据
+- Spend, impressions, views, clicks, conversions and revenue by creative or ad group
+- Time range, attribution window, currency and metric definitions
+- Audience, placement, budget, offer and landing-page differences
+- Scripts, variants, baselines or historical data
 
-## 执行步骤
+## Execution steps
 
-1. 检查数据完整性、时间范围、币种、归因与指标定义，标出缺失或不可比较的项目。
-2. 在分母非零且输入明确时计算 CTR=点击/曝光、CPC=花费/点击、CPA=花费/转化、ROAS=归因收入/花费；说明采用的转化率分母。
-3. 按观看、点击、转化漏斗区分可能的问题，结合脚本定位待验证的创意原因。
-4. 检查受众、版位、优惠和落地页是否同时变化；将观察结果与因果解释分开。
-5. 针对优先问题提出最多 3 个测试，每个定义假设、素材改动、保持项、主要指标和判断所需数据。
-6. 没有投放数据时提供数据收集模板和分析计划；样本不足时明确无法下结论，不虚构基准或显著性。
+1. Check completeness, time ranges, currency, attribution and definitions; mark missing or incomparable data.
+2. With nonzero denominators and clear inputs, calculate CTR=clicks/impressions, CPC=spend/clicks, CPA=spend/conversions and ROAS=attributed revenue/spend; state the conversion-rate denominator.
+3. Separate possible viewing, clicking and conversion-funnel issues; use scripts to identify creative explanations to test.
+4. Check simultaneous changes in audience, placement, offers and landing pages; distinguish observations from causal explanations.
+5. Propose up to three priority tests, defining hypothesis, creative changes, fixed factors, primary metric and evidence needed.
+6. Without data, provide a collection template and analysis plan; with insufficient samples, state that conclusions are unavailable and do not invent benchmarks or significance.
 
-## 输出内容
+## Deliverables
 
-- 数据质量与可比性说明
-- 可计算指标表与公式、缺失项
-- 观察—可能原因—证据—不确定性
-- 优先测试计划及需要补充的数据
+- Data quality and comparability
+- Computable metrics, formulas and missing inputs
+- Observation–possible cause–evidence–uncertainty
+- Priority tests and additional data needed
 
-## 质量要求
+## Quality checks
 
-- 不除以零，不混合币种或不兼容口径
-- 不伪造投放数据、行业基准或统计显著性
-- 不把相关性当因果，不承诺提升收益
+- No division by zero or mixed currencies or incompatible definitions
+- No fabricated campaign data, benchmarks or significance
+- No treating correlation as causation or guaranteeing revenue improvements

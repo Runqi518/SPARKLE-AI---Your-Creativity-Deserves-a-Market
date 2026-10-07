@@ -1,34 +1,34 @@
 # Brand check
 
-标识：`brand-check`
+Identifier: `brand-check`
 
-对照品牌简报检查广告文案和创意方向。
+Review advertising copy and creative direction against the brand brief.
 
-## 适用场景
+## When to use
 
-检查广告是否符合品牌的语气、视觉和表达边界。
+Checking brand tone, visuals and expression boundaries.
 
-## 输入资料
+## Inputs
 
-- 品牌简报、用词与禁用项
-- 待检查脚本或创意描述
+- Brand brief, vocabulary and prohibited elements
+- Script or creative descriptions to review
 
-## 执行步骤
+## Execution steps
 
-1. 整理已有品牌约束。
-2. 逐项对照文案和创意，注明原句或镜头依据。
-3. 区分明确偏离、可优化项和缺少信息的项目。
-4. 给出保留核心创意的最小修改建议。
+1. Collect established brand constraints.
+2. Compare copy and concepts against each constraint, citing sentences or shots.
+3. Distinguish clear deviations, improvements and missing information.
+4. Recommend minimal changes that preserve the central concept.
 
-## 输出内容
+## Deliverables
 
-- 品牌约束清单
-- 偏离项与依据
-- 建议改写或修正
-- 待确认信息
+- Brand constraints
+- Deviations and evidence
+- Recommended rewrites or corrections
+- Information to confirm
 
-## 质量要求
+## Quality checks
 
-- 检查依据来自提供的品牌简报
-- 不自行发明品牌禁用项
-- 没有品牌资料时先说明检查范围
+- Use the supplied brand brief as evidence
+- Do not invent prohibitions
+- Explain scope when brand information is unavailable

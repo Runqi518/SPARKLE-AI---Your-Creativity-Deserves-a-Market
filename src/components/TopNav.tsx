@@ -13,9 +13,9 @@ export function TopNav({
   const pathname = usePathname();
 
   const navItems = [
-    { label: "创意", href: "/", icon: Lightbulb },
-    { label: "素材", href: "/assets", icon: Box },
-    { label: "商业", href: "/commercial", icon: BadgeDollarSign },
+    { label: "Ideas", href: "/", icon: Lightbulb },
+    { label: "Assets", href: "/assets", icon: Box },
+    { label: "Commercial", href: "/commercial", icon: BadgeDollarSign },
   ];
 
   return (

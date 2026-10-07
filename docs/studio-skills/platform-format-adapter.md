@@ -1,38 +1,38 @@
 # Platform Format Adapter
 
-标识：`platform-format-adapter`
+Identifier: `platform-format-adapter`
 
-将同一广告内容改写为适合不同投放位置的画面、节奏和文字版本。
+Adapt an ad into visual, pacing and copy versions for different placements.
 
-## 适用场景
+## When to use
 
-跨 TikTok、Instagram Reels、YouTube Shorts 或不同广告版位复用素材。
+Reusing content across TikTok, Instagram Reels, YouTube Shorts or other placements.
 
-## 输入资料
+## Inputs
 
-- 原脚本、镜头清单及现有画幅
-- 目标平台和具体投放版位
-- 目标时长、CTA、品牌与受众
-- 用户提供的当前平台规格和安全区模板（如有）
+- Source script, shot list and aspect ratio
+- Target platform and specific placement
+- Duration, CTA, brand and audience
+- Current platform specifications and safe-area templates supplied by the user, if available
 
-## 执行步骤
+## Execution steps
 
-1. 确认目标平台和版位；区分通用创作建议与需要当前平台资料验证的硬性规格。
-2. 调整开场速度、段落顺序与结尾，使核心利益适合该观看场景。
-3. 提出画幅重构与主体位置建议，标注文字和 CTA 需要避开的位置。
-4. 调整字幕长度、每屏信息量、阅读时长、口播与无声观看理解方式。
-5. 为各版位输出独立脚本或修改表，注明需要重拍、补图或改剪的镜头。
-6. 未提供当前规范时将尺寸、时长限制和安全区标记为待核实，不虚构最新平台政策。
+1. Confirm platform and placement; distinguish general creative advice from requirements needing current verification.
+2. Adjust opening speed, segment order and ending to suit the viewing context.
+3. Recommend reframing and subject placement; identify regions text and CTA should avoid.
+4. Adjust caption length, information density, reading time, speech and muted-viewing comprehension.
+5. Deliver a separate script or change table for each placement; mark shots needing reshoots, additional images or recutting.
+6. Without current specifications, mark dimensions, duration limits and safe areas for verification; do not invent current policies.
 
-## 输出内容
+## Deliverables
 
-- 按平台或版位的版本对照表
-- 改写后的开场、主体与 CTA
-- 画幅、字幕、构图及剪辑调整清单
-- 待核实的发布规格
+- Version comparison by platform or placement
+- Adapted opening, body and CTA
+- Aspect-ratio, caption, composition and edit changes
+- Publishing specifications to verify
 
-## 质量要求
+## Quality checks
 
-- 每个版本保留一致产品事实
-- 通用建议与平台硬性要求明确区分
-- 不承诺平台审批、流量或转化结果
+- All versions retain product facts
+- General advice and mandatory requirements are clearly distinguished
+- No guarantees of approval, traffic or conversion

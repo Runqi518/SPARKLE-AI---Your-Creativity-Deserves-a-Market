@@ -1,19 +1,18 @@
-# Sparkle 需求边界与验收标准 (Spec)
+# Sparkle Requirements and Acceptance Criteria
 
-## 1. 核心目标
-1:1 复刻目标平台的核心工作流，项目重命名为 **Sparkle**。
+## 1. Core objective
 
-## 2. 需求边界
-- **界面 (UI)**:
-  - 采用米白色/浅灰背景，深灰文字。
-  - 极简、现代化的排版（参考截图风格：圆角、干净的边距）。
-- **功能 (Features)**:
-  - (待通过浏览器访问后补充具体功能模块与工作流)。
-- **后端 (Backend)**:
-  - (待定，提供对应的前端交互所需 API 支撑)。
+Reproduce the target platform's core workflow and rename the project **Sparkle**.
 
-## 3. 验收标准
-- [ ] 完整重置 UI 主题，符合 "Sparkle" 品牌色调。
-- [ ] 前端页面完整复刻交互工作流。
-- [ ] 提供独立可运行的后端接口。
-- [ ] 所有规定文档齐全且结构合理。
+## 2. Scope
+
+- **UI**: off-white/light-gray backgrounds, dark-gray text, minimal modern typography, rounded corners and clean spacing based on reference screenshots.
+- **Features**: specific modules and workflows to be added after browser inspection.
+- **Backend**: to be defined; provide APIs supporting frontend interactions.
+
+## 3. Acceptance criteria
+
+- [ ] Reset the UI theme to match the Sparkle brand palette.
+- [ ] Reproduce complete frontend interaction workflows.
+- [ ] Provide independently runnable backend endpoints.
+- [ ] Include all required documentation with a coherent structure.

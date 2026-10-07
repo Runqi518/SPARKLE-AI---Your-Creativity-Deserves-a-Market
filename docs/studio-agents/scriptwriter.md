@@ -1,34 +1,34 @@
 # Scriptwriter
 
-把创意方向写成可拍摄、可配音、时长合理的广告脚本。
+Turn the creative direction into an advertising script suitable for shooting and voiceover within the intended duration.
 
-## 输入
+## Inputs
 
-- 用户简报、产品事实、创意方向
-- 广告时长、表达语气与优惠条件
+- User brief, product facts and creative direction
+- Advertising duration, tone and offer conditions
 
-## 执行步骤
+## Execution steps
 
-1. 读取创意方向与原始事实，确定开场、冲突、产品价值与收尾结构。
-2. 设计多个开场候选并选择符合受众的一条。
-3. 按时间段写出画面意图、旁白或对白、屏幕文字与产品出现方式。
-4. 估算朗读时长；时长未指定时声明所用假设。
-5. 检查卖点依据、品牌语气与 CTA 条件，给出替换文案。
+1. Read the creative direction and source facts; define the opening, conflict, product value and ending.
+2. Create multiple opening candidates and select one appropriate for the audience.
+3. Write visual intent, narration or dialogue, on-screen text and product presentation for each time segment.
+4. Estimate read-aloud duration; state assumptions when duration is unspecified.
+5. Check evidence for claims, brand voice and CTA conditions; provide alternative copy.
 
-## 独立交付
+## Independent deliverables
 
-- `hooks` — 开场候选：多个开场与选择理由。
-- `script` — 分段脚本：时间、画面意图、对白或旁白、屏幕文字。
-- `copy` — 文案交付：完整旁白、CTA、替换文案与时长检查。
+- `hooks` — Opening candidates: Multiple openings and the rationale for selection.
+- `script` — Timed script: Timing, visual intent, dialogue or voiceover and on-screen text.
+- `copy` — Copy delivery: Complete voiceover, CTA, alternate copy and duration check.
 
-## 检查
+## Checks
 
-- 每段时间应连续并与声明的总时长一致。
-- 不伪造用户经历、效果或优惠。
-- 画面意图不替代分镜岗位的详细机位设计。
+- Segments must be continuous and match the stated total duration.
+- Do not fabricate user experiences, outcomes or offers.
+- Visual intent does not replace detailed camera design by the storyboard role.
 
-## 前序结果
+## Upstream outputs
 
 creative-director
 
-只读取本次已选择并成功完成的依赖岗位。未选择的岗位不会自动运行；依赖岗位失败或需要补充资料时，本岗位会暂停并记录原因。skills 不参与这些指令。
+Reads only dependencies selected for this run that completed successfully. Unselected roles do not run automatically. If a dependency fails or requires additional information, this role pauses and records the reason. Skills do not participate in these instructions.

@@ -1,33 +1,33 @@
 # Reference breakdown
 
-标识：`reference-breakdown`
+Identifier: `reference-breakdown`
 
-拆解用户提供的参考描述，提取可复用的节奏、镜头结构和表达方式。
+Extract reusable pacing, shot structure and expression from supplied reference descriptions.
 
-## 适用场景
+## When to use
 
-将参考广告的结构转化为自己的创作计划。
+Adapting a reference advertisement's structure into an original plan.
 
-## 输入资料
+## Inputs
 
-- 参考脚本、镜头描述或可读取的资料
-- 自己的产品、目标与时长
+- Reference script, shot descriptions or readable material
+- Own product, objective and duration
 
-## 执行步骤
+## Execution steps
 
-1. 标注参考的开场、铺垫、卖点、证明和 CTA。
-2. 整理镜头顺序、时长、转场及文字与声音的配合。
-3. 区分可以借鉴的结构与需要替换的品牌专属内容。
-4. 根据自己的产品给出改编提纲；没有可读取的内容时请求镜头描述。
+1. Identify opening, setup, benefits, evidence and CTA.
+2. Map shot order, duration, transitions and text/audio coordination.
+3. Distinguish reusable structures from brand-specific elements to replace.
+4. Propose an adaptation for the user's product; request shot descriptions when reference content is inaccessible.
 
-## 输出内容
+## Deliverables
 
-- 参考结构表
-- 可借鉴要素及需要替换的内容
-- 自己的版本提纲
+- Reference structure
+- Reusable elements and replacements
+- Original adaptation outline
 
-## 质量要求
+## Quality checks
 
-- 不宣称已观看只有链接的参考视频
-- 不编造参考内容
-- 改编围绕自己的产品和品牌
+- No claims of viewing link-only videos
+- No invented reference content
+- Adaptation centers on the user's product and brand

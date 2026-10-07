@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-// 节点类型枚举
+// Node type enum
 export const NodeTypeSchema = z.enum(["image", "video", "text", "ai_generation"]);
 
-// AI 生成请求体结构
+// AI generation request schema
 export const GenerationRequestSchema = z.object({
   projectId: z.string().optional(),
   nodeId: z.string(),
   type: NodeTypeSchema,
-  prompt: z.string().min(1, "Prompt 不能为空"),
-  sourceNodeIds: z.array(z.string()).optional().default([]), // 链路传入的上游节点
+  prompt: z.string().min(1, "Prompt is required"),
+  sourceNodeIds: z.array(z.string()).optional().default([]), // Upstream nodes supplied through connections
   config: z.object({
     model: z.string().default("seedance2.0"),
     aspectRatio: z.string().default("16:9"),
@@ -18,17 +18,17 @@ export const GenerationRequestSchema = z.object({
 });
 export type GenerationRequest = z.infer<typeof GenerationRequestSchema>;
 
-// AI 生成任务状态
+// AI generation job status
 export const TaskStatusSchema = z.enum(["pending", "processing", "success", "failed"]);
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
-// AI 生成任务响应体
+// AI generation response schema
 export const GenerationTaskSchema = z.object({
   id: z.string(),
   nodeId: z.string(),
   status: TaskStatusSchema,
   prompt: z.string(),
-  resultUrl: z.string().optional(), // 生成成功的媒体地址
+  resultUrl: z.string().optional(), // URL of successfully generated media
   errorMsg: z.string().optional(),
   createdAt: z.number(),
 });

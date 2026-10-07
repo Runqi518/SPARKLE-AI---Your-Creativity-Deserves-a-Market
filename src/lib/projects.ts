@@ -7,7 +7,7 @@ import { Project, Canvas, GenerationJob, sequelize, syncDatabase } from "./db";
 import { randomUUID } from "node:crypto";
 import { databaseWrite } from "./db/migrations";
 import { StudioError } from "./studio/http";
-import { CanvasSnapshotSchema } from "../../schemas/project";
+import { CanvasSnapshotSchema, normalizeProjectIndustry } from "../../schemas/project";
 import { Transaction } from "sequelize";
 
 const MAX_PROJECTS = 10;
@@ -32,8 +32,8 @@ function initialCanvas(input: CreateProjectInput): CanvasSnapshot {
   if (input.mode === "template") {
     return {
       nodes: [
-        baseNode("asset", "商品主图", "image", 100, 220),
-        baseNode("video", "AI 种草视频", "video", 440, 220),
+        baseNode("asset", "Product hero image", "image", 100, 220),
+        baseNode("video", "AI product discovery video", "video", 440, 220),
       ],
       edges: [{ id: "asset-video", source: "asset", target: "video", animated: true }],
     };
@@ -43,14 +43,14 @@ function initialCanvas(input: CreateProjectInput): CanvasSnapshot {
   const isEdit = input.basicType === "edit";
   const source = baseNode(
     "source",
-    isImageToVideo ? "步骤 1 · 上传参考图" : isEdit ? "步骤 1 · 导入视频" : "步骤 1 · 编写脚本",
+    isImageToVideo ? "Step 1 · Upload a reference image" : isEdit ? "Step 1 · Import video" : "Step 1 · Write a script",
     isImageToVideo ? "image" : isEdit ? "video" : "text",
     100,
     220,
   );
   const output = baseNode(
     "generation",
-    isEdit ? "步骤 2 · 编辑视频" : "步骤 2 · 生成视频",
+    isEdit ? "Step 2 · Edit video" : "Step 2 · Generate video",
     "video",
     440,
     220,
@@ -67,7 +67,7 @@ export async function createProject(input: CreateProjectInput, outer?: Transacti
   await syncDatabase();
   const work = async (transaction: Transaction) => {
   const count = await Project.count({ transaction });
-  if (count >= MAX_PROJECTS) throw new Error(`项目数量已达上限（${MAX_PROJECTS} 个）`);
+  if (count >= MAX_PROJECTS) throw new Error(`Project limit reached (${MAX_PROJECTS} projects)`);
   if (input.subjectId) await (await import("./commissions")).requireSubject(input.subjectId);
   
   const id = `project_${randomUUID()}`;
@@ -104,6 +104,7 @@ export async function getProject(id: string): Promise<ProjectResponse | null> {
   const data = project.toJSON() as ProjectResponse & { Canvas?: { nodes: CanvasSnapshot["nodes"]; edges: CanvasSnapshot["edges"]; revision: number } };
   return {
     ...data,
+    industry: normalizeProjectIndustry(data.industry) as ProjectResponse["industry"],
     canvas: data.Canvas ? { nodes: data.Canvas.nodes, edges: data.Canvas.edges } : { nodes: [], edges: [] },
     revision: data.Canvas?.revision ?? 0,
   };
@@ -112,7 +113,7 @@ export async function getProject(id: string): Promise<ProjectResponse | null> {
 export async function getProjects(): Promise<ProjectResponse[]> {
   await syncDatabase();
   const projects = await Project.findAll({ order: [['createdAt', 'DESC']] });
-  return projects.map(p => p.toJSON()) as ProjectResponse[];
+  return projects.map(p => ({ ...p.toJSON(), industry: normalizeProjectIndustry(p.get("industry")) })) as ProjectResponse[];
 }
 
 export async function renameProject(id: string, name: string) {

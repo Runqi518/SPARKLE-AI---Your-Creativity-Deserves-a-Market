@@ -89,7 +89,7 @@ test("canvas API persists and reloads each complete campaign workflow", async ()
     db = require(path.join(root, "src/lib/db/index.ts"));
     const projects = require(path.join(root, "src/lib/projects.ts"));
     const route = require(path.join(root, "src/app/api/projects/[id]/canvas/route.ts"));
-    const project = await projects.createProject({ name: "Campaign test", industry: "美妆", mode: "template" });
+    const project = await projects.createProject({ name: "Campaign test", industry: "Beauty", mode: "template" });
     for (const template of templates) {
       const snapshot = { nodes: template.nodes, edges: template.edges };
       const response = await route.PUT(new Request(`http://localhost/api/projects/${project.id}/canvas`, {

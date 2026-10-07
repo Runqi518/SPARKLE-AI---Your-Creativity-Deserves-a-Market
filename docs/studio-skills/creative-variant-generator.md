@@ -1,38 +1,38 @@
 # Creative Variant Generator
 
-标识：`creative-variant-generator`
+Identifier: `creative-variant-generator`
 
-围绕同一简报生成有实质差异、可比较和可测试的广告创意路线。
+Generate meaningfully different, comparable and testable advertising routes from the same brief.
 
-## 适用场景
+## When to use
 
-需要多套广告方向、素材测试矩阵，或已有版本之间差异太小。
+Multiple creative directions, testing matrices or insufficient variation between existing ads.
 
-## 输入资料
+## Inputs
 
-- 产品、受众、目标及确认卖点
-- 品牌边界、固定优惠和 CTA
-- 现有创意与需要避免的重复方向
-- 平台、时长、预算及可用素材
+- Product, audience, objective and confirmed benefits
+- Brand boundaries, fixed offer and CTA
+- Existing ideas and directions to avoid repeating
+- Platform, duration, budget and assets
 
-## 执行步骤
+## Execution steps
 
-1. 整理所有版本必须一致的产品事实、优惠条件与品牌约束。
-2. 设计 3–5 条不同路线，在受众动机、叙事结构或视觉表现上建立实质区别。
-3. 为每条路线写核心角度、开场、故事大纲、关键视觉与结尾 CTA。
-4. 标注每条路线所需素材、制作难度、适用人群与预期验证的创意假设。
-5. 建立差异对照表，剔除只换措辞或镜头颜色而核心表达相同的版本。
-6. 推荐先做的两个版本；希望隔离单一因素时另给只改变一个变量的 A/B 配对。
+1. Collect facts, offer conditions and constraints shared across versions.
+2. Design three to five routes differing in audience motivation, narrative or visual execution.
+3. Write each route's angle, opening, story outline, key visuals and CTA.
+4. Specify assets, production complexity, audience and creative hypothesis.
+5. Compare differences and remove variants that only change wording or colors while repeating the same idea.
+6. Recommend two initial versions; add single-variable A/B pairs when isolating one factor.
 
-## 输出内容
+## Deliverables
 
-- 固定事实与约束
-- 3–5 个创意方案：角度、开场、大纲、视觉、CTA
-- 方案差异与制作需求对照
-- 优先方案与单变量 A/B 配对
+- Fixed facts and constraints
+- Three to five concepts: angle, opening, outline, visuals and CTA
+- Differences and production requirements
+- Priority concepts and single-variable A/B pairs
 
-## 质量要求
+## Quality checks
 
-- 每个版本有明确可说明的差异
-- 固定产品事实与优惠保持一致
-- 测试预期写成假设而非效果保证
+- Each version has an explainable difference
+- Facts and offers remain consistent
+- Expected effects are hypotheses rather than guarantees

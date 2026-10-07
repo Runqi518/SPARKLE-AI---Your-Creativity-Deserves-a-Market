@@ -3,7 +3,7 @@
 @layer base {
   body {
     background-color: #000000;
-    /* 玻璃粉和玻璃银的全局氛围光晕 */
+    /* Global ambient glow for pink and silver glass */
     background-image: 
       radial-gradient(circle at 15% 20%, rgba(255, 192, 203, 0.15) 0%, transparent 40%),
       radial-gradient(circle at 85% 80%, rgba(220, 220, 220, 0.12) 0%, transparent 40%);
@@ -13,33 +13,33 @@
 }
 
 @layer components {
-  /* 玻璃黑 - 用于大部分面板、卡片底座 */
+  /* Black glass for most panels and card surfaces */
   .glass-black {
     @apply bg-black/40 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)];
   }
   
-  /* 玻璃银 - 用于高亮按钮、激活状态、浅色面板 */
+  /* Silver glass for highlighted buttons, active states and light panels */
   .glass-silver {
     @apply bg-white/10 backdrop-blur-xl border border-white/30 text-white shadow-[0_4px_16px_rgba(255,255,255,0.05)];
   }
   
-  /* 玻璃粉 - 用于主动作按钮、品牌强调色 */
+  /* Pink glass for primary actions and brand accents */
   .glass-pink {
     @apply bg-pink-500/20 backdrop-blur-xl border border-pink-400/40 text-pink-50 shadow-[0_0_20px_rgba(255,192,203,0.3)];
   }
 
-  /* 悬浮通用玻璃反光特效 */
+  /* Shared floating glass reflection effect */
   .glass-hover {
     @apply hover:bg-white/15 hover:border-white/40 transition-all duration-300;
   }
 
-  /* 替代以前所有的 text-gray */
+  /* Replaces previous text-gray styles */
   .text-glass-muted {
     @apply text-white/50 font-light;
   }
 }
 
-/* React Flow 全局玻璃化 */
+/* Global React Flow glass styling */
 .react-flow__node { color: #fff; }
 .react-flow__handle { background-color: rgba(255, 255, 255, 0.6); border: none; }
 .react-flow__controls button {

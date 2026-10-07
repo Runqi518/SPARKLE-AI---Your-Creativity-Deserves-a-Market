@@ -1,38 +1,38 @@
 # Accessibility Pass
 
-标识：`accessibility-pass`
+Identifier: `accessibility-pass`
 
-让广告在不同观看条件下更容易阅读和理解，尤其关注字幕和无声观看。
+Improve advertising readability and comprehension across viewing conditions, especially captions and muted viewing.
 
-## 适用场景
+## When to use
 
-检查字幕密集、信息切换过快、配色不清楚或过度依赖声音的广告。
+Dense captions, fast information changes, unclear colors or excessive reliance on sound.
 
-## 输入资料
+## Inputs
 
-- 脚本、字幕及逐镜头时长
-- 文字尺寸、颜色、背景与布局描述
-- 目标设备、画幅和观看场景
-- 音乐、旁白、音效及闪烁或快速运动描述
+- Script, captions and shot durations
+- Text size, colors, backgrounds and layout
+- Target devices, aspect ratio and viewing context
+- Music, narration, effects, flashing and rapid movement descriptions
 
-## 执行步骤
+## Execution steps
 
-1. 检查字幕长度、行数、分行和停留时间，标记阅读负担高的片段。
-2. 根据已给出的颜色与背景信息检查文字是否易辨；缺少精确颜色时不虚构对比度数值。
-3. 检查关键信息是否只依赖口播、音效或颜色，并提出文字或画面补充。
-4. 检查过快切换、闪烁和复杂背景对理解的影响，给出简化或延长显示的建议。
-5. 重写需要优化的字幕，列出布局、背景垫层与节奏改动。
-6. 注明仅凭描述无法验证的实际视觉效果或标准符合性。
+1. Check caption length, line count, line breaks and display time; flag high reading load.
+2. Assess legibility using supplied colors and backgrounds; do not invent contrast values without precise colors.
+3. Identify information conveyed only through speech, sound or color and recommend text or visual alternatives.
+4. Review rapid cuts, flashing and complex backgrounds; suggest simplification or longer display.
+5. Rewrite captions needing improvement and list layout, background-layer and pacing changes.
+6. Identify visual effects or standards compliance that cannot be verified from descriptions alone.
 
-## 输出内容
+## Deliverables
 
-- 问题表：时间段、阅读或理解问题、优先级、修改建议
-- 优化后的字幕
-- 无声观看与布局修改清单
-- 需要实际画面或精确参数验证的项目
+- Issues: time segment, readability or comprehension problem, priority and recommendation
+- Improved captions
+- Muted-viewing and layout changes
+- Items requiring actual visuals or precise measurements
 
-## 质量要求
+## Quality checks
 
-- 字幕与口播事实一致
-- 重要信息有可见表达
-- 不声称已通过实际无障碍测量或认证
+- Caption facts match speech
+- Important information has a visible expression
+- No claims of actual accessibility measurement or certification

@@ -16,7 +16,7 @@ async function POSTHandler(request: Request) {
     const project = await createProject(parsed.data);
     return NextResponse.json({ project }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "无法创建项目" }, { status: 409 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create project" }, { status: 409 });
   }
 }
 

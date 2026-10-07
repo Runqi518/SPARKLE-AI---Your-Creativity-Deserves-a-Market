@@ -7,7 +7,7 @@ import { readInput } from "@/lib/studio/http";
 async function GETHandler(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await getProject(id);
-  if (!project) return NextResponse.json({ error: "项目不存在" }, { status: 404 });
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
   return NextResponse.json({ project });
 }
 

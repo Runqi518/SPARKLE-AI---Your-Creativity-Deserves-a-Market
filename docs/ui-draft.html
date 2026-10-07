@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sparkle · UI 草稿（自由画布）</title>
+<title>Sparkle · UI Draft (Free Canvas)</title>
 <style>
   :root{
     --bg:#0b0b0f; --panel:rgba(255,255,255,.035); --line:rgba(255,255,255,.10);
@@ -51,7 +51,7 @@
   .card li{padding:3px 0}
   .foot{padding:44px 0 60px; border-top:1px solid var(--line2); text-align:center}
 
-  /* 三档选择 modal */
+  /* Three-level selection modal */
   #choices{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:80}
   .modal{width:680px; background:#14141b; border:1px solid var(--line); border-radius:16px; padding:26px; box-shadow:0 30px 80px rgba(0,0,0,.5)}
   .modal h3{font-size:16px; margin-bottom:4px}
@@ -63,7 +63,7 @@
   .mode .d{color:var(--mut); font-size:11.5px; line-height:1.55}
   .mode .walk{display:block; margin-top:9px; color:var(--mut2); font-size:10.5px}
 
-  /* 产品三栏 */
+  /* Product Three Columns */
   #product{position:fixed; inset:0; display:none; flex-direction:column}
   .topbar{height:48px; flex:none; display:flex; align-items:center; gap:12px; padding:0 14px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.35)}
   .topbar .sep{color:var(--mut2)}
@@ -74,7 +74,7 @@
   .bar i{display:block;height:100%;width:41%;background:var(--pink)}
   .middle{flex:1; display:flex; min-height:0}
 
-  /* 侧栏（可折叠） */
+  /* Side panel (foldable) */
   .sidebar{width:164px; flex:none; border-right:1px solid var(--line); padding:10px 8px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; transition:margin .2s}
   .sidebar.closed{margin-left:-164px}
   .sb-title{font-size:10px; color:var(--mut2); letter-spacing:1px; padding:10px 10px 6px}
@@ -86,7 +86,7 @@
   .fold{position:absolute; left:0; top:50%; z-index:5; writing-mode:vertical-rl; font-size:10px; color:var(--mut); padding:8px 4px; border:1px solid var(--line); border-left:none; background:rgba(10,10,16,.8); border-radius:0 6px 6px 0; display:none}
   .fold.show{display:block}
 
-  /* 画布 */
+  /* Canvas */
   .canvas{flex:1; position:relative; overflow:auto; min-width:0; display:flex; flex-direction:column; background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size:22px 22px}
   .canvas-scroll{flex:1; position:relative; padding:26px}
   .addbar{position:absolute; top:14px; left:14px; display:flex; gap:7px; z-index:3}
@@ -98,7 +98,7 @@
   .fw .foot{display:flex; gap:7px; padding:8px 10px; border-top:1px solid var(--line2)}
   .scale{position:absolute; right:10px; bottom:10px; font-size:10px; color:var(--mut2)}
 
-  /* 终剪时间轴（常驻，强调可编辑） */
+  /* Final cut timeline (persistent, emphasizes editability) */
   .timeline{flex:none; border-top:1px solid var(--line); background:rgba(0,0,0,.3)}
   .tl-hd{display:flex; align-items:center; gap:10px; padding:8px 14px; font-size:12px; border-bottom:1px solid var(--line2)}
   .tl-hd .hint{color:var(--pink); font-size:11px}
@@ -110,7 +110,7 @@
   .seg.v{background:#3a3f5c} .seg.g{background:#6c4a7f} .seg.t{background:#3f6b52} .seg.a{background:#8a6a3f} .seg.b{background:#7f4a52}
   .ed-note{font-size:9.5px; color:var(--mut2); margin-left:6px}
 
-  /* Agent 对话栏（可折叠） */
+  /* Agent Dialogue Box (Collapse) */
   .chat{width:372px; flex:none; border-left:1px solid var(--line); display:flex; flex-direction:column; background:rgba(0,0,0,.25); transition:margin .2s}
   .chat.closed{margin-right:-372px}
   .chat .ctx{flex:none; padding:8px 12px; border-bottom:1px solid var(--line2); display:flex; flex-direction:column; gap:7px}
@@ -133,7 +133,7 @@
   .composer{flex:none; border-top:1px solid var(--line); padding:10px 12px}
   .input{border:1px solid var(--line); border-radius:10px; padding:9px 11px; color:var(--mut2); font-size:12px}
 
-  /* 抽屉 */
+  /* drawer */
   #drawer{position:fixed; top:48px; right:0; bottom:0; width:440px; background:#111117; border-left:1px solid var(--line); display:none; flex-direction:column; z-index:40}
   .dr-hd{flex:none; padding:13px 16px; border-bottom:1px solid var(--line2); display:flex; align-items:center; gap:8px}
   .dr-hd h3{font-size:13.5px} .dr-hd .sp{margin-left:auto}
@@ -145,7 +145,7 @@
   .row .meta b{font-size:12px; display:block}
   .row .meta small{color:var(--mut); font-size:11px}
 
-  /* 独立页 */
+  /* Independent Page */
   #page{position:fixed; inset:0; background:var(--bg); display:none; flex-direction:column; z-index:50}
   .pg-hd{flex:none; height:48px; display:flex; align-items:center; gap:12px; padding:0 16px; border-bottom:1px solid var(--line)}
   .pg-bd{flex:1; overflow-y:auto; padding:22px 26px}
@@ -168,249 +168,249 @@
     <div class="nav">
       <span class="logo"><i>S</i>Sparkle</span>
       <span class="sp"></span>
-      <a href="#" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">功能</a>
-      <a href="#" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'})">能力</a>
-      <a href="#" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'})">生态</a>
-      <button class="btn primary" onclick="openChoices()">开始创作</button>
+      <a href="#" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">Function</a>
+      <a href="#" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'})">Ability</a>
+      <a href="#" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'})">Ecology</a>
+      <button class="btn primary" onclick="openChoices()">started creating</button>
     </div>
     <div class="hero">
-      <h1>给一个<em>要推广的东西</em>，<br/>自动做出一条可随时修改的广告</h1>
-      <p>从商品、活动到知识内容，AI 把它从脚本做到成片；做完不是死的视频，而是一份随时能改的工程。</p>
-      <button class="btn primary" onclick="openChoices()">开始创作</button>
-      <div class="secure">即梦 · Seedream · Kling · Vidu · MiniMax · 通义万相 · 混元</div>
+      <h1>Give one<em>Things to promote</em>, <br/>automatically generates an advertisement that can be modified at any time.</h1>
+      <p>From products and activities to knowledge content, AI transforms scripts into finished products; the finished product isn't a static video, but a project that can be modified at any time.</p>
+      <button class="btn primary" onclick="openChoices()">started creating</button>
+      <div class="secure">Seedream · Kling · Vidu · MiniMax · Tongyi Wanxiang · Hunyuan</div>
     </div>
     <div class="sec" id="s1">
-      <h2>功能</h2><div class="sub">围绕一个核心，能做的几件事</div>
+      <h2>Function</h2><div class="sub">Around one core point, here are a few things that can be done.</div>
       <div class="grid3">
-        <div class="card"><h4>自动做成片</h4><ul><li>一个标的，一条流程</li><li>脚本、分镜、镜头、声音</li><li>中间随时可改</li></ul></div>
-        <div class="card"><h4>模板创作</h4><ul><li>上传参考，拉片复刻</li><li>换成自己的产品</li></ul></div>
-        <div class="card"><h4>内容找货</h4><ul><li>做好的内容自动匹配品牌</li><li>模板上架，作者分成</li></ul></div>
+        <div class="card"><h4>Automatically made into a film</h4><ul><li>One target, one process</li><li>Script, Storyboard, Camera Work, Sound</li><li>can be modified at any time.</li></ul></div>
+        <div class="card"><h4>Template Creation</h4><ul><li>uploaded for reference, film analysis and reproduction.</li><li>replaced with your own product</li></ul></div>
+        <div class="card"><h4>Content Search</h4><ul><li>Automatically matches branded content.</li><li>The template is now available; the author receives a share of the profits.</li></ul></div>
       </div>
     </div>
     <div class="sec" id="s2">
-      <h2>能力</h2><div class="sub">靠什么做到</div>
+      <h2>Ability</h2><div class="sub">How did achieve this?</div>
       <div class="grid3">
-        <div class="card"><h4>多 Agent 分工</h4><ul><li>不只一个 Prompt 出一个视频</li><li>一致性和产品保真</li></ul></div>
-        <div class="card"><h4>可编辑工程</h4><ul><li>多轨时间轴</li><li>文字、图表、数据都能改</li></ul></div>
-        <div class="card"><h4>成本可控</h4><ul><li>先审关键帧再渲染</li><li>改局部不整条重做</li></ul></div>
+        <div class="card"><h4>Multi-agent division of labor</h4><ul><li>More than one Prompt, one video.</li><li>Consistency and Product Authenticity</li></ul></div>
+        <div class="card"><h4>Editable Project</h4><ul><li>Multitrack Timeline</li><li>allows editing of text, charts, and data.</li></ul></div>
+        <div class="card"><h4>Cost Controllable</h4><ul><li>Review keyframes before rendering</li><li>: Modify only a portion, not the entire line, and redo it.</li></ul></div>
       </div>
     </div>
     <div class="sec" id="s3">
-      <h2>生态</h2><div class="sub">怎么流通，怎么赚钱</div>
+      <h2>Ecology</h2><div class="sub">How does circulate and how does it generate profit?</div>
       <div class="grid3">
-        <div class="card"><h4>模板市场</h4><ul><li>流程打包上架</li><li>按次或买断</li></ul></div>
-        <div class="card"><h4>素材授权</h4><ul><li>成片、镜头、角色可授权</li></ul></div>
-        <div class="card"><h4>创意悬赏</h4><ul><li>品牌出钱，创作者投稿</li></ul></div>
+        <div class="card"><h4>Template Market</h4><ul><li>Process Package and Upload</li><li>Per transaction or outright purchase</li></ul></div>
+        <div class="card"><h4>Material Authorization</h4><ul><li>- Finished film, shots, and characters are available for licensing.</li></ul></div>
+        <div class="card"><h4>Creative Bounty</h4><ul><li>: Brand funding, creator submissions.</li></ul></div>
       </div>
     </div>
     <div class="foot">
-      <button class="btn primary" onclick="openChoices()">开始创作</button>
-      <div class="secure" style="margin-top:18px">创意无界，增长有形 · From Prompt to Profit</div>
+      <button class="btn primary" onclick="openChoices()">started creating</button>
+      <div class="secure" style="margin-top:18px">Creativity knows no bounds, growth is tangible. From Prompt to Profit</div>
     </div>
   </div>
 </div>
 
-<!-- 三档选择 -->
+<!-- Three-speed options-->
 <div id="choices">
   <div class="modal">
-    <h3>从哪开始？</h3>
-    <div class="m-sub">先选一条路，进去之后每一步都能改。</div>
+    <h3>Where to start?</h3>
+    <div class="m-sub">First, choose a path, and then you can change every step after you enter it.</div>
     <div class="modes">
       <div class="mode" onclick="pick('template')">
-        <b>模板创作</b>
-        <div class="d">上传一条参考广告，或挑一个模板，系统拆解它的节奏和镜头，换成你的内容。</div>
-        <span class="walk">拉片复刻从这里进</span>
+        <b>Template Creation</b>
+        <div class="d">Upload a reference ad or choose a template, and the system will analyze its rhythm and camera work and replace it with your content.</div>
+        <span class="walk">Reference Recreation Guide: Start Here</span>
       </div>
       <div class="mode" onclick="pick('basic')">
-        <b>基础创作</b>
-        <div class="d">一句话生成视频、上传一张图让它动起来，或对已有视频做编辑。</div>
-        <span class="walk">文生视频 · 图生视频 · 编辑</span>
+        <b>Basic Creation</b>
+        <div class="d">can generate videos with a single sentence, animate an uploaded image, or edit existing videos.</div>
+        <span class="walk">Text-based video · Image-based video · Editing</span>
       </div>
       <div class="mode" onclick="pick('free')">
-        <b>自由创作</b>
-        <div class="d">进到空白画布，自己加文本、图片、视频、音频，想怎么做就怎么做。</div>
-        <span class="walk">剪辑在画布里完成</span>
+        <b>Free Creation</b>
+        <div class="d">enters a blank canvas and adds text, images, videos, and audio as you like.</div>
+        <span class="walk">Editing completed on the canvas</span>
       </div>
     </div>
-    <div style="margin-top:16px; text-align:right"><button class="btn ghost" onclick="closeChoices()">取消</button></div>
+    <div style="margin-top:16px; text-align:right"><button class="btn ghost" onclick="closeChoices()">Cancel</button></div>
   </div>
 </div>
 
-<!-- 产品 -->
+<!-- Product-->
 <div id="product">
   <div class="topbar">
     <span class="logo"><i>S</i>Sparkle</span>
     <span class="sep">·</span>
-    <span class="crumb">空间：<b>我的空间</b></span>
+    <span class="crumb">'s Space:<b>My Space</b></span>
     <span class="sep">·</span>
-    <span class="crumb">项目：<b>自由创作 · 未命名</b></span>
+    <span class="crumb">Project :<b>Untitled Creative Work</b></span>
     <span class="runctl" style="margin-left:18px">
-      <button class="btn primary" onclick="toast('开始生成')">生成</button>
-      <button class="btn ghost" onclick="toast('已暂停')">暂停</button>
-      <button class="btn ghost" onclick="toast('模式：按节点确认')">模式</button>
+      <button class="btn primary" onclick="toast('Start generating')">generated</button>
+      <button class="btn ghost" onclick="toast('has been suspended.')">Pause</button>
+      <button class="btn ghost" onclick="toast('Mode: Confirm by Node')">mode</button>
     </span>
     <span class="budget">
-      <span>预算 <span class="bar"><i></i></span> 0 / 3,000 点</span>
-      <span>钱包 5,600 点</span>
-      <span class="btn ghost" style="padding:3px 10px" onclick="toast('账户菜单')">头像</span>
+      <span>Budget <span class="bar"><i></i></span> 0 / 3,000 </span>
+      <span>Wallet 5,600 </span>
+      <span class="btn ghost" style="padding:3px 10px" onclick="toast('Account Menu')">profile picture</span>
     </span>
   </div>
 
   <div class="middle">
-    <!-- 侧栏 -->
+    <!-- Sidebar-->
     <nav class="sidebar" id="sidebar">
-      <div class="sb-title">创作</div>
-      <button class="sb-item active" onclick="goCanvas()">画布</button>
-      <button class="sb-item" onclick="openDrawer('subjects')">营销标的<span class="badge">抽屉</span></button>
-      <button class="sb-item" onclick="openDrawer('assets')">素材库<span class="badge">抽屉</span></button>
+      <div class="sb-title">(created)</div>
+      <button class="sb-item active" onclick="goCanvas()">Canvas</button>
+      <button class="sb-item" onclick="openDrawer('subjects')">Marketing Subject<span class="badge">drawer</span></button>
+      <button class="sb-item" onclick="openDrawer('assets')">Asset Library<span class="badge">drawer</span></button>
       <div class="divider"></div>
-      <div class="sb-title">交易</div>
-      <button class="sb-item" onclick="openPage('market')">模板市场</button>
-      <button class="sb-item" onclick="openPage('bounty')">创意悬赏</button>
-      <button class="sb-item" onclick="openPage('orders')">收益订单</button>
+      <div class="sb-title">transaction</div>
+      <button class="sb-item" onclick="openPage('market')">Template Market</button>
+      <button class="sb-item" onclick="openPage('bounty')">Creative Bounty</button>
+      <button class="sb-item" onclick="openPage('orders')">Profit Order</button>
       <div class="divider"></div>
-      <div class="sb-title">账户</div>
-      <button class="sb-item" onclick="openDrawer('wallet')">钱包</button>
-      <button class="sb-item" onclick="toast('设置')">设置</button>
+      <div class="sb-title">account</div>
+      <button class="sb-item" onclick="openDrawer('wallet')">Wallet</button>
+      <button class="sb-item" onclick="toast('Settings')">Settings</button>
       <div class="divider"></div>
-      <button class="sb-item" onclick="toggleSidebar()">收起侧栏</button>
+      <button class="sb-item" onclick="toggleSidebar()">Collapse sidebar</button>
     </nav>
-    <button class="fold" id="fold" onclick="toggleSidebar()">侧栏</button>
+    <button class="fold" id="fold" onclick="toggleSidebar()">Sidebar</button>
 
-    <!-- 画布 -->
+    <!-- Canvas-->
     <main class="canvas">
       <div class="canvas-scroll">
         <div class="addbar">
-          <button class="btn mini" onclick="addCard('text')">添加文本</button>
-          <button class="btn mini" onclick="addCard('image')">添加图片</button>
-          <button class="btn mini" onclick="addCard('video')">添加视频</button>
-          <button class="btn mini" onclick="addCard('audio')">添加音频</button>
+          <button class="btn mini" onclick="addCard('text')">Add text</button>
+          <button class="btn mini" onclick="addCard('image')">Add image</button>
+          <button class="btn mini" onclick="addCard('video')">Add video</button>
+          <button class="btn mini" onclick="addCard('audio')">Add audio</button>
         </div>
         <div class="grid" id="grid">
           <div class="fw" data-type="text">
-            <div class="hd"><b>脚本</b><span class="type">文本</span><span class="dot done"></span></div>
-            <div class="body ph">PAS 结构 · 58 字口播</div>
+            <div class="hd"><b>script</b><span class="type">text</span><span class="dot done"></span></div>
+            <div class="body ph">PAS Structure · 58-character oral broadcast</div>
             <div class="foot">
-              <button class="btn mini ghost" onclick="toast('编辑这段文本')">编辑</button>
-              <button class="btn mini ghost" onclick="toast('添加素材到这一段')">添加素材</button>
-              <button class="btn mini ghost" onclick="toast('已把这段发给 AI 处理')">问 AI</button>
+              <button class="btn mini ghost" onclick="toast('Edit this text')">(Editor)</button>
+              <button class="btn mini ghost" onclick="toast('Add material to this section')">Add material</button>
+              <button class="btn mini ghost" onclick="toast('has already sent this to AI for processing.')">Ask AI</button>
             </div>
           </div>
           <div class="fw" data-type="image">
-            <div class="hd"><b>主视觉</b><span class="type">图片</span><span class="dot done"></span></div>
-            <div class="body ph">关键帧 · 9:16</div>
+            <div class="hd"><b>Main Visual</b><span class="type">Image</span><span class="dot done"></span></div>
+            <div class="body ph">Keyframes · 9:16</div>
             <div class="foot">
-              <button class="btn mini ghost" onclick="toast('编辑图片')">编辑</button>
-              <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
-              <button class="btn mini ghost" onclick="toast('把这张图发给 AI 修改')">问 AI</button>
+              <button class="btn mini ghost" onclick="toast('Edit Image')">(Editor)</button>
+              <button class="btn mini ghost" onclick="toast('Add material')">Add material</button>
+              <button class="btn mini ghost" onclick="toast('sent this image to AI for editing.')">Ask AI</button>
             </div>
           </div>
           <div class="fw" data-type="video">
-            <div class="hd"><b>镜头</b><span class="type">视频</span><span class="dot run"></span></div>
-            <div class="body ph">第 1 镜 · hook · 1.2 秒</div>
+            <div class="hd"><b>lens</b><span class="type">Video</span><span class="dot run"></span></div>
+            <div class="body ph">Mirror 1 · Hook · 1.2 seconds</div>
             <div class="foot">
-              <button class="btn mini ghost" onclick="toast('编辑这段视频')">编辑</button>
-              <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
-              <button class="btn mini ghost" onclick="toast('把这段视频发给 AI 修改')">问 AI</button>
+              <button class="btn mini ghost" onclick="toast('edit this video')">(Editor)</button>
+              <button class="btn mini ghost" onclick="toast('Add material')">Add material</button>
+              <button class="btn mini ghost" onclick="toast('sent this video to AI for editing.')">Ask AI</button>
             </div>
           </div>
           <div class="fw" data-type="audio">
-            <div class="hd"><b>背景音乐</b><span class="type">音频</span><span class="dot wait"></span></div>
-            <div class="body ph">BPM 120 · 都市电子</div>
+            <div class="hd"><b>Background Music</b><span class="type">Audio</span><span class="dot wait"></span></div>
+            <div class="body ph">BPM 120 · Urban Electronics</div>
             <div class="foot">
-              <button class="btn mini ghost" onclick="toast('编辑音频')">编辑</button>
-              <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
-              <button class="btn mini ghost" onclick="toast('把这段音频发给 AI 修改')">问 AI</button>
+              <button class="btn mini ghost" onclick="toast('Audio Editing')">(Editor)</button>
+              <button class="btn mini ghost" onclick="toast('Add material')">Add material</button>
+              <button class="btn mini ghost" onclick="toast('sent this audio file to the AI for editing.')">Ask AI</button>
             </div>
           </div>
         </div>
-        <div style="margin-top:18px; font-size:10.5px; color:var(--mut2)">画布上每个框都是一份可编辑内容；点「问 AI」把它交给右侧对话处理，改完只更新这一处。</div>
+        <div style="margin-top:18px; font-size:10.5px; color:var(--mut2)">Each box on the canvas is an editable piece of content; click "Ask AI" to let the dialog on the right handle it, and only update this one place after you've made the changes.</div>
       </div>
 
-      <!-- 终剪时间轴（常驻，强调可编辑） -->
+      <!-- Final Cut Timeline (Permanent, Emphasizing Editability) -->
       <div class="timeline" id="timeline">
         <div class="tl-hd">
-          <b>终剪时间轴</b>
-          <span class="hint">每一步都可双击修改，改完不用重新生成</span>
+          <b>Final Shear Timeline</b>
+          <span class="hint">Each step can be modified by double-clicking; no regeneration is needed after modification.</span>
           <span class="sp" style="flex:1"></span>
-          <button class="btn mini ghost" onclick="toggleTimeline()">收起</button>
+          <button class="btn mini ghost" onclick="toggleTimeline()">(Collapse)</button>
         </div>
         <div class="tracks">
-          <div class="track"><span class="nm">视频</span><div class="lane"><div class="seg v" style="flex:2">开场</div><div class="seg v" style="flex:3">产品镜头</div><div class="seg v" style="flex:2">收尾</div></div><span class="ed-note">双击替换片段</span></div>
-          <div class="track"><span class="nm">图形</span><div class="lane"><div class="seg g" style="flex:1.4">卖点贴片</div><div class="seg g" style="flex:1">价格</div></div><span class="ed-note">双击改数字和颜色</span></div>
-          <div class="track"><span class="nm">字幕</span><div class="lane"><div class="seg t" style="flex:2.5">字幕条</div></div><span class="ed-note">双击改字</span></div>
-          <div class="track"><span class="nm">配音</span><div class="lane"><div class="seg a" style="flex:2.5">口播</div></div><span class="ed-note">只重灌这一轨</span></div>
-          <div class="track"><span class="nm">音乐</span><div class="lane"><div class="seg b" style="flex:3">BGM</div></div><span class="ed-note">拖拽对齐</span></div>
+          <div class="track"><span class="nm">Video</span><div class="lane"><div class="seg v" style="flex:2">Opening</div><div class="seg v" style="flex:3">Product Lens</div><div class="seg v" style="flex:2">(End)</div></div><span class="ed-note">Double-click to replace the fragment</span></div>
+          <div class="track"><span class="nm">Graphic</span><div class="lane"><div class="seg g" style="flex:1.4">Selling Point Label</div><div class="seg g" style="flex:1">Price</div></div><span class="ed-note">Double-click to change numbers and colors</span></div>
+          <div class="track"><span class="nm">Subtitles</span><div class="lane"><div class="seg t" style="flex:2.5">Subtitle bar</div></div><span class="ed-note">Double-click to change the text</span></div>
+          <div class="track"><span class="nm">(Dubbing)</span><div class="lane"><div class="seg a" style="flex:2.5">(voiceover)</div></div><span class="ed-note">Only re-install this track</span></div>
+          <div class="track"><span class="nm">Music</span><div class="lane"><div class="seg b" style="flex:3">BGM</div></div><span class="ed-note">Drag and align</span></div>
         </div>
       </div>
-      <button class="btn mini ghost" id="tlopen" style="display:none" onclick="toggleTimeline()">打开时间轴</button>
+      <button class="btn mini ghost" id="tlopen" style="display:none" onclick="toggleTimeline()">Open Timeline</button>
     </main>
 
-    <!-- Agent 对话栏 -->
+    <!-- Agent Chat Bar-->
     <aside class="chat" id="chat">
       <div class="ctx">
-        <b style="font-size:11px">交给谁做</b>
+        <b style="font-size:11px">Who should I give to?</b>
         <div class="ag-select">
-          <button class="ag-btn" onclick="toggleAgMenu()">选择 Agent 或 Skill <span style="color:var(--mut2)">▾</span></button>
+          <button class="ag-btn" onclick="toggleAgMenu()">Select Agent or Skill <span style="color:var(--mut2)">▾</span></button>
           <div class="ag-menu" id="agmenu">
             <div class="grp">Agent</div>
-            <div class="it" onclick="pickAgent('创意总监')">创意总监</div>
-            <div class="it" onclick="pickAgent('编剧')">编剧</div>
-            <div class="it" onclick="pickAgent('产品视觉')">产品视觉</div>
-            <div class="it" onclick="pickAgent('角色设计')">角色设计</div>
-            <div class="it" onclick="pickAgent('场景设计')">场景设计</div>
-            <div class="it" onclick="pickAgent('分镜设计')">分镜设计</div>
-            <div class="it" onclick="pickAgent('视频导演')">视频导演</div>
-            <div class="it" onclick="pickAgent('音效导演')">音效导演</div>
-            <div class="it" onclick="pickAgent('终剪合成')">终剪合成</div>
+            <div class="it" onclick="pickAgent('Creative Director')">Creative Director</div>
+            <div class="it" onclick="pickAgent('Screenwriter')">Screenwriter</div>
+            <div class="it" onclick="pickAgent('Product Visuals')">Product Visuals</div>
+            <div class="it" onclick="pickAgent('Character Design')">Character Design</div>
+            <div class="it" onclick="pickAgent('Scene Design')">Scene Design</div>
+            <div class="it" onclick="pickAgent('Storyboard Design')">Storyboard Design</div>
+            <div class="it" onclick="pickAgent('Video Director')">Video Director</div>
+            <div class="it" onclick="pickAgent('Sound Director')">Sound Director</div>
+            <div class="it" onclick="pickAgent('Final shear synthesis')">Final shear synthesis</div>
             <div class="grp">Skill</div>
-            <div class="it" onclick="pickAgent('动态图形')">动态图形</div>
-            <div class="it" onclick="pickAgent('拉片复刻')">拉片复刻</div>
-            <div class="it" onclick="pickAgent('字幕校对')">字幕校对</div>
+            <div class="it" onclick="pickAgent('Animated Graphics')">Animated Graphics</div>
+            <div class="it" onclick="pickAgent('Reference Recreation')">Reference Recreation</div>
+            <div class="it" onclick="pickAgent('Subtitle Proofreading')">Subtitle Proofreading</div>
           </div>
         </div>
-        <button class="btn mini ghost" style="text-align:center" onclick="toggleChat()">收起对话</button>
+        <button class="btn mini ghost" style="text-align:center" onclick="toggleChat()">Collapse conversation</button>
       </div>
       <div class="msgs">
         <div class="msg"><div class="bd">
-          <div class="who">编剧</div>
-          <div class="bubble plain">脚本已经生成一版，时长 58 字、结构 PAS。要改哪一句，直接说，或点画布上「脚本」卡片的「编辑」。</div>
+          <div class="who">Screenwriter</div>
+          <div class="bubble plain">The script has been generated, with a duration of 58 characters and a PAS structure. To change a specific sentence, simply tell me, or click "Edit" on the "Script" card on the canvas.</div>
         </div></div>
         <div class="msg"><div class="bd">
-          <div class="who">视频导演 · 第 1 镜</div>
-          <div class="bubble">出 3 个候选，第 2 个综合分最高，已标记为待你确认。</div>
+          <div class="who">Video Director - Scene 1</div>
+          <div class="bubble">has 3 candidates. The second one has the highest overall score and has been marked as awaiting your confirmation.</div>
           <div class="cands">
-            <div class="cand"><div class="th ph">候选 1</div><div class="sc"><span>0.71</span><span>形变</span></div></div>
-            <div class="cand"><div class="th ph" style="border-color:var(--pink)">候选 2</div><div class="sc"><span style="color:var(--ok)">0.92</span><span>推荐</span></div></div>
-            <div class="cand"><div class="th ph">候选 3</div><div class="sc"><span>0.80</span><span>偏暗</span></div></div>
+            <div class="cand"><div class="th ph">Candidate 1</div><div class="sc"><span>0.71</span><span>Deformation</span></div></div>
+            <div class="cand"><div class="th ph" style="border-color:var(--pink)">Candidate 2</div><div class="sc"><span style="color:var(--ok)">0.92</span><span>Recommendation</span></div></div>
+            <div class="cand"><div class="th ph">Candidate 3</div><div class="sc"><span>0.80</span><span>is slightly dark.</span></div></div>
           </div>
         </div></div>
       </div>
       <div class="composer">
-        <div class="input">告诉 AI 要改哪里…</div>
+        <div class="input">tells the AI where to change.…</div>
       </div>
     </aside>
-    <button class="fold" id="chatfold" style="right:0; left:auto; border-right:none; border-left:1px solid var(--line); border-radius:6px 0 0 6px" onclick="toggleChat()">对话</button>
+    <button class="fold" id="chatfold" style="right:0; left:auto; border-right:none; border-left:1px solid var(--line); border-radius:6px 0 0 6px" onclick="toggleChat()">Dialogue</button>
   </div>
 </div>
 
-<!-- 抽屉 -->
+<!-- drawer-->
 <div id="drawer">
   <div class="dr-hd">
-    <h3 id="dr-title">抽屉</h3>
-    <span class="tag" style="margin-left:6px">浏览用，画布不关</span>
+    <h3 id="dr-title">drawer</h3>
+    <span class="tag" style="margin-left:6px">is for browsing purposes; the canvas is not closed.</span>
     <span class="sp"></span>
-    <button class="btn ghost" onclick="closeDrawer()">关闭</button>
+    <button class="btn ghost" onclick="closeDrawer()">Close</button>
   </div>
   <div class="dr-bd" id="dr-body"></div>
 </div>
 
-<!-- 独立页 -->
+<!-- Independent Page-->
 <div id="page">
   <div class="pg-hd">
-    <button class="btn ghost" onclick="closePage()">返回画布</button>
+    <button class="btn ghost" onclick="closePage()">Return to Canvas</button>
     <span class="crumb" id="pg-crumb"></span>
-    <span class="tag" style="margin-left:8px">会产生记录，画布后台继续</span>
+    <span class="tag" style="margin-left:8px">will generate a record; the canvas background will continue.</span>
   </div>
   <div class="pg-bd" id="pg-body"></div>
 </div>
@@ -432,8 +432,8 @@
     closeChoices();
     $('landing').style.display='none';
     $('product').style.display='flex';
-    const map={template:'模板创作', basic:'基础创作', free:'自由创作'};
-    toast('进入画布 · 来源：'+map[mode]);
+    const map={template:'Template Creation', basic:'Basic Creation', free:'Free Creation'};
+    toast('Enter canvas · Source:'+map[mode]);
   }
 
   function toggleSidebar(){
@@ -454,41 +454,41 @@
   function toggleAgMenu(){ $('agmenu').classList.toggle('open'); }
   function pickAgent(name){
     $('agmenu').classList.remove('open');
-    toast('已选择 '+name+'，下面的指令都交给他');
+    toast('has been selected. '+name+', Give him all the following instructions.');
   }
 
   function addCard(type){
-    const titles={text:['文字内容','文本'],image:['图片','图片'],video:['视频片段','视频'],audio:['音频片段','音频']};
+    const titles={text:['Text content','text'],image:['Image','Image'],video:['Video Clip','Video'],audio:['audio clip','Audio']};
     const [t,ty]=titles[type];
     const d=document.createElement('div'); d.className='fw'; d.dataset.type=type;
     d.innerHTML=`<div class="hd"><b>${t}</b><span class="type">${ty}</span><span class="dot wait"></span></div>
-      <div class="body ph">新添加的${ty.toLowerCase()==='文本'?'内容':ty}</div>
+      <div class="body ph">(Newly added)${ty.toLowerCase()==='text'?'Content':ty}</div>
       <div class="foot">
-        <button class="btn mini ghost" onclick="toast('编辑')">编辑</button>
-        <button class="btn mini ghost" onclick="toast('添加素材')">添加素材</button>
-        <button class="btn mini ghost" onclick="toast('把这段发给 AI')">问 AI</button>
+        <button class="btn mini ghost" onclick="toast('(Editor)')">(Editor)</button>
+        <button class="btn mini ghost" onclick="toast('Add material')">Add material</button>
+        <button class="btn mini ghost" onclick="toast('Send this to AI')">Ask AI</button>
       </div>`;
     $('grid').appendChild(d);
-    toast('已添加 '+ty);
+    toast('has been added. '+ty);
   }
 
   function goCanvas(){ closeDrawer(); closePage(); }
 
   const DRAWER={
-    subjects:{title:'营销标的', body:`
-      <button class="btn primary" style="width:100%; margin-bottom:12px" onclick="fromDrawer('标的 → 一键生成')">新建标的，一键生成</button>
-      <div class="row"><div class="th ph">图</div><div class="meta"><b>Nike Air Max 春季上新</b><small>product · 3 个卖点</small></div><button class="btn mini" onclick="fromDrawer('标的 → 生成')">生成</button></div>
-      <div class="row"><div class="th ph">图</div><div class="meta"><b>618 品牌大促</b><small>campaign</small></div><button class="btn mini" onclick="fromDrawer('标的 → 生成')">生成</button></div>`},
-    assets:{title:'素材库', body:`
+    subjects:{title:'Marketing Subject', body:`
+      <button class="btn primary" style="width:100%; margin-bottom:12px" onclick="fromDrawer('target → One-click generation')">Create a new target, generate with one click.</button>
+      <div class="row"><div class="th ph">(Image)</div><div class="meta"><b>Nike Air Max Spring New Arrival</b><small>product · 3 Selling Points</small></div><button class="btn mini" onclick="fromDrawer('target → generate')">generated</button></div>
+      <div class="row"><div class="th ph">(Image)</div><div class="meta"><b>618 Brand Promotion</b><small>campaign</small></div><button class="btn mini" onclick="fromDrawer('target → generate')">generated</button></div>`},
+    assets:{title:'Asset Library', body:`
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px">
-        ${['角色','场景','镜头','成片','音乐','音色'].map(t=>`<div class="ph" style="height:74px" onclick="fromDrawer('素材 → 插入画布')">${t}</div>`).join('')}
+        ${['character','Scene','lens','Finished product','Music','tone'].map(t=>`<div class="ph" style="height:74px" onclick="fromDrawer('Material → Insert Canvas')">${t}</div>`).join('')}
       </div>
-      <div class="ph" style="height:50px; margin-top:10px">点一个素材，插入到当前画布</div>`},
-    wallet:{title:'钱包', body:`
-      <div class="card" style="margin-bottom:12px"><h4>点数</h4>
-        <div style="font-size:24px; font-weight:800; margin:6px 0">5,600 <span style="font-size:12px; color:var(--mut)">点</span></div>
-        <button class="btn primary mini" onclick="toast('充值')">充值</button></div>
-      <div class="row"><div class="meta"><b>现金账户</b><small>可提现 1,280（人民币）</small></div></div>`}
+      <div class="ph" style="height:50px; margin-top:10px">Select an image and insert it into the current canvas.</div>`},
+    wallet:{title:'Wallet', body:`
+      <div class="card" style="margin-bottom:12px"><h4>Points</h4>
+        <div style="font-size:24px; font-weight:800; margin:6px 0">5,600 <span style="font-size:12px; color:var(--mut)"></span></div>
+        <button class="btn primary mini" onclick="toast('Recharge')">Recharge</button></div>
+      <div class="row"><div class="meta"><b>Cash Account</b><small>Cashable 1,280 ((RMB)</small></div></div>`}
   };
   function openDrawer(kind){
     closePage();
@@ -497,37 +497,37 @@
     $('drawer').style.display='flex';
   }
   function closeDrawer(){ $('drawer').style.display='none'; }
-  function fromDrawer(payload){ closeDrawer(); toast('已回画布 · '+payload); }
+  function fromDrawer(payload){ closeDrawer(); toast('has returned to the canvas. '+payload); }
 
   function openPage(kind){
     closeDrawer();
     $('page').style.display='flex';
     if(kind==='market'){
-      $('pg-crumb').textContent='模板市场';
-      $('pg-body').innerHTML=`<h2>模板市场</h2><div class="sub">把别人跑通的流程拿来用，换成自己的内容</div>
-        <div class="row"><div class="th ph">模板</div><div class="meta"><b>电商爆款三件套</b><small>官方 · 1,286 次使用 · 免费</small></div><button class="btn primary mini" onclick="fromPage2('模板 → 新建画布')">使用</button></div>
-        <div class="row"><div class="th ph">模板</div><div class="meta"><b>游戏买量裂变流</b><small>19 一次 · 中位点击率 3.1%</small></div><button class="btn primary mini" onclick="fromPage2('模板 → 新建画布')">使用</button></div>`;
+      $('pg-crumb').textContent='Template Market';
+      $('pg-body').innerHTML=`<h2>Template Market</h2><div class="sub">took a successful process from someone else and replaced it with their own content.</div>
+        <div class="row"><div class="th ph">Template</div><div class="meta"><b>E-commerce Hot Selling Three-Piece Set</b><small>Official Account · 1,286 First use · Free</small></div><button class="btn primary mini" onclick="fromPage2('Template → New Canvas')">usage</button></div>
+        <div class="row"><div class="th ph">Template</div><div class="meta"><b>Game User Acquisition and Split Marketing Strategies</b><small>19 One click · Median click-through rate 3.1%</small></div><button class="btn primary mini" onclick="fromPage2('Template → New Canvas')">usage</button></div>`;
     }
     if(kind==='bounty'){
-      $('pg-crumb').textContent='创意悬赏';
-      $('pg-body').innerHTML=`<h2>创意悬赏</h2><div class="sub">品牌出钱，创作者投稿</div>
+      $('pg-crumb').textContent='Creative Bounty';
+      $('pg-body').innerHTML=`<h2>Creative Bounty</h2><div class="sub">: Brand funding, creator submissions.</div>
         <table class="tbl">
-          <tr><th>悬赏</th><th>标的</th><th>预算</th><th>截止</th><th></th></tr>
-          <tr><td>春季跑鞋种草短视频</td><td>Nike Air Max 春季上新</td><td>3,000</td><td>3 天</td><td style="text-align:right"><button class="btn primary mini" onclick="fromPage2('悬赏 → 新建画布')">接单</button></td></tr>
+          <tr><th>Bounty</th><th>target</th><th>Budget</th><th>Deadline</th><th></th></tr>
+          <tr><td>Spring Running Shoes Recommendation Short Video</td><td>Nike Air Max Spring New Arrival</td><td>3,000</td><td>3 Tian</td><td style="text-align:right"><button class="btn primary mini" onclick="fromPage2('Bounty → Create New Canvas')">accepting orders</button></td></tr>
         </table>`;
     }
     if(kind==='orders'){
-      $('pg-crumb').textContent='收益订单';
-      $('pg-body').innerHTML=`<h2>收益订单</h2><div class="sub">点数账户与现金账户分开记</div>
+      $('pg-crumb').textContent='Profit Order';
+      $('pg-body').innerHTML=`<h2>Profit Order</h2><div class="sub">Points account and cash account should be recorded separately.</div>
         <table class="tbl">
-          <tr><th>订单</th><th>类型</th><th>金额</th><th>状态</th></tr>
-          <tr><td>电商爆款三件套</td><td>模板使用费</td><td>+19.00</td><td><span class="tag warn">结算中</span></td></tr>
-          <tr><td>春季跑鞋短视频授权</td><td>素材授权</td><td>+199.00</td><td><span class="tag ok">已结算</span></td></tr>
+          <tr><th>order</th><th>Type</th><th>Amount</th><th>Status</th></tr>
+          <tr><td>E-commerce Hot Selling Three-Piece Set</td><td>Template Usage Fee</td><td>+19.00</td><td><span class="tag warn">in settlement</span></td></tr>
+          <tr><td>Spring Running Shoes Short Video Authorization</td><td>Material Authorization</td><td>+199.00</td><td><span class="tag ok">has been settled.</span></td></tr>
         </table>`;
     }
   }
   function closePage(){ $('page').style.display='none'; }
-  function fromPage2(payload){ closePage(); toast('已回画布 · '+payload); }
+  function fromPage2(payload){ closePage(); toast('has returned to the canvas. '+payload); }
 </script>
 </body>
 </html>

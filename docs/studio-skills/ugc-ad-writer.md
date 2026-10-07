@@ -1,38 +1,38 @@
 # UGC Ad Writer
 
-标识：`ugc-ad-writer`
+Identifier: `ugc-ad-writer`
 
-生成自然、便于创作者拍摄的用户分享型广告脚本，保留清晰的产品价值与行动方向。
+Write natural creator-friendly user-sharing ad scripts with clear product value and action.
 
-## 适用场景
+## When to use
 
-制作创作者口播、日常场景体验、产品测评或用户分享风格的广告。
+Creator-to-camera ads, everyday experiences, product reviews or user-sharing formats.
 
-## 输入资料
+## Inputs
 
-- 产品、目标受众及真实卖点
-- 创作者身份、表达习惯与实际体验资料
-- 目标时长、平台、行动目标
-- 可演示功能、品牌要求与披露要求
+- Product, audience and verified benefits
+- Creator identity, expression style and actual experience
+- Duration, platform and desired action
+- Demonstrable features, brand requirements and disclosures
 
-## 执行步骤
+## Execution steps
 
-1. 判断哪些体验有事实依据；未提供的第一人称体验、购买经历和效果不得编成真实证言。
-2. 确定一个自然的日常场景，把脚本组织为开场、问题或需求、演示或体验、卖点、行动号召。
-3. 按目标时长切分段落，写口语化、适合朗读的短句，减少广告术语和连续堆叠卖点。
-4. 为每段补充自拍或补拍画面、产品动作、屏幕文案，以及必要的赞助披露占位。
-5. 给出两个不同风格的开场和一个可替换结尾，保持主体产品事实一致。
-6. 没有实际体验时使用演示型表达，或将体验句明确标成待创作者确认的脚本占位。
+1. Identify supported experiences; never fabricate first-person use, purchases or outcomes as genuine testimonials.
+2. Choose a natural everyday scenario and structure the script as opening, problem or need, demonstration or experience, benefits and CTA.
+3. Divide the target duration into segments with conversational short sentences; reduce jargon and stacked claims.
+4. Add selfie or B-roll visuals, product actions, on-screen text and required sponsorship-disclosure placeholders.
+5. Provide two stylistically distinct openings and one alternative ending while preserving product facts.
+6. Without actual experience, use demonstration language or mark experience statements as placeholders requiring creator confirmation.
 
-## 输出内容
+## Deliverables
 
-- 时间轴脚本表：时间、口播、拍摄动作、屏幕文字
-- 补拍镜头清单
-- 两个开场与一个替换结尾
-- 体验事实、披露信息和待确认占位
+- Timed script: time, spoken copy, shooting actions and screen text
+- B-roll list
+- Two openings and one alternate ending
+- Experience facts, disclosures and confirmation placeholders
 
-## 质量要求
+## Quality checks
 
-- 时长合理，朗读节奏自然
-- 不冒充真实消费者或编造体验
-- 自然表达仍能清楚说明产品价值与 CTA
+- Plausible duration and natural read-aloud rhythm
+- No impersonated consumers or invented experiences
+- Natural expression clearly communicates product value and CTA

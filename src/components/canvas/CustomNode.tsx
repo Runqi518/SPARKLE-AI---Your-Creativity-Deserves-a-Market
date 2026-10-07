@@ -9,18 +9,18 @@ export const CustomNode = ({ id, data }: NodeProps) => {
   const [resultUrl, setResultUrl] = useState<string>(String(data.resultUrl || ""));
   const [editedPrompt, setPrompt] = useState<string | null>(null);
   
-  // 用于更新全局画布数据
+  // Update global canvas data
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
   const nodes = useNodes();
 
-  // 核心业务逻辑：当上游节点连入时，自动获取上游的生成结果作为前置上下文
+  // Core logic: use connected upstream generation results as context
   const parentNodeIds = edges.filter(e => e.target === id).map(e => e.source);
   const parentNodes = nodes.filter(n => parentNodeIds.includes(n.id));
   const parentOutputs = parentNodes
     .map(n => n.data?.resultUrl)
     .filter(Boolean)
-    .join("\n\n---\n\n"); // 组合多个父节点的输出
+    .join("\n\n---\n\n"); // Combine outputs from multiple parent nodes
 
   const prompt = editedPrompt ?? parentOutputs;
   const handleGenerate = async () => {
@@ -39,7 +39,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
       });
       const resData = await res.json();
       if (!res.ok || !resData.task) {
-        alert(resData.error || "生成请求失败，请稍后重试");
+        alert(resData.error || "Generation request failed. Please try again later.");
         setIsGenerating(false);
         return;
       }
@@ -51,18 +51,18 @@ export const CustomNode = ({ id, data }: NodeProps) => {
 
         if (!statusData.task) {
           setIsGenerating(false);
-          alert("任务状态查询失败，请刷新重试");
+          alert("Failed to retrieve job status. Refresh and retry.");
           return;
         }
 
         if (statusData.task.status === "success") {
           const newResult = statusData.task.resultUrl;
           setResultUrl(newResult);
-          updateNodeData(id, { resultUrl: newResult }); // 关键：更新到全局画布状态，让下游节点能读到！
+          updateNodeData(id, { resultUrl: newResult }); // Update global canvas state so downstream nodes can read the result
           setIsGenerating(false);
         } else if (statusData.task.status === "failed") {
           setIsGenerating(false);
-          alert("生成失败");
+          alert("Generation failed");
         } else {
           setTimeout(() => pollTask(taskId), 1000);
         }
@@ -78,7 +78,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
     <div className="glass-black rounded-2xl p-5 min-w-[280px] max-w-[320px] relative group shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-white/10 hover:border-pink-500/50 transition-colors">
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50 pointer-events-none rounded-2xl" />
       
-      {/* 强化版连接点：更大的点击区域，更高的层级，带十字光标 */}
+      {/* Enhanced connection handle: larger hit area, higher stacking order and crosshair cursor */}
       <Handle 
         id="target"
         type="target" 
@@ -97,7 +97,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
         {parentNodes.length > 0 && (
           <div className="flex items-center gap-1 text-[10px] text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">
             <LinkIcon className="w-3 h-3" />
-            已关联上游
+            Upstream connected
           </div>
         )}
       </div>
@@ -109,7 +109,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
             onChange={e => setPrompt(e.target.value)}
             className="w-full text-xs p-3 glass-silver bg-black/40 rounded-xl focus:outline-none focus:border-pink-500/80 focus:ring-1 focus:ring-pink-500/50 placeholder:text-white/20 font-light resize-none transition-all shadow-inner" 
             rows={4} 
-            placeholder={parentNodes.length > 0 ? "已自动填入上游结果作为上下文..." : "输入 Prompt..."}
+            placeholder={parentNodes.length > 0 ? "Upstream results are included as context..." : "Enter a prompt..."}
           />
           <button 
             onClick={handleGenerate}
@@ -117,7 +117,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
             className="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed hover:opacity-90 font-medium tracking-wider shadow-lg"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            引擎生成
+            Generate
           </button>
         </div>
       )}
@@ -128,7 +128,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
              <div className="absolute inset-0 border-2 border-pink-500/20 rounded-full"></div>
              <div className="absolute inset-0 border-2 border-pink-500 rounded-full border-t-transparent animate-spin"></div>
           </div>
-          <span className="text-[10px] font-light tracking-widest text-pink-300">GPU 算力分配中...</span>
+          <span className="text-[10px] font-light tracking-widest text-pink-300">Allocating GPU resources...</span>
         </div>
       )}
 
@@ -146,7 +146,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
         </div>
       )}
 
-      {/* 强化版连接点：源节点 */}
+      {/* Enhanced connection handle: source node */}
       <Handle 
         id="source"
         type="source" 

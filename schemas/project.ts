@@ -1,13 +1,28 @@
 import { z } from "zod";
 
-export const ProjectIndustrySchema = z.enum([
-  "教育培训",
-  "3c及电器",
-  "美妆",
-  "母婴",
-  "宠物",
-  "互联网",
-]);
+// Decode legacy persisted category keys without changing user-authored content.
+const legacyIndustryCodes = [
+  [25945, 32946, 22521, 35757],
+  [51, 99, 21450, 30005, 22120],
+  [32654, 22918],
+  [27597, 23156],
+  [23456, 29289],
+  [20114, 32852, 32593],
+];
+const englishIndustries = ["Education and Training", "Electronics and Appliances", "Beauty", "Maternity and Baby", "Pets", "Internet"] as const;
+export function normalizeProjectIndustry(value: unknown): unknown {
+  const index = legacyIndustryCodes.findIndex(codes => String.fromCodePoint(...codes) === value);
+  return index < 0 ? value : englishIndustries[index];
+}
+
+export const ProjectIndustrySchema = z.preprocess(normalizeProjectIndustry, z.enum([
+  "Education and Training",
+  "Electronics and Appliances",
+  "Beauty",
+  "Maternity and Baby",
+  "Pets",
+  "Internet",
+]));
 
 export const CreationModeSchema = z.enum(["template", "basic", "free"]);
 export const BasicCreationTypeSchema = z.enum(["t2v", "i2v", "edit"]);
@@ -31,8 +46,8 @@ export const CanvasEdgeSchema = z.object({
 });
 
 export const CreateProjectSchema = z.object({
-  name: z.string().min(1, "项目名称不能为空").max(50, "项目名称过长").default("未命名项目"),
-  industry: ProjectIndustrySchema.default("互联网"),
+  name: z.string().min(1, "Project name is required").max(50, "Project name is too long").default("Untitled project"),
+  industry: ProjectIndustrySchema.default("Internet"),
   mode: CreationModeSchema,
   basicType: BasicCreationTypeSchema.optional(),
   templateId: z.number().int().positive().optional(),

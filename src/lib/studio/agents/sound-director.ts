@@ -8,38 +8,38 @@ export const definition: AgentDefinition = {
     "scriptwriter",
     "storyboard-designer"
   ],
-  "purpose": "把旁白、音乐与音效规划到广告时间线，交付可执行的声音制作指令。",
+  "purpose": "Place voiceover, music and sound effects on the advertising timeline and deliver actionable sound-production instructions.",
   "inputs": [
-    "旁白或对白脚本、分镜节奏和时长",
-    "品牌声音语气、音乐参考描述与版权约束"
+    "Voiceover or dialogue script, storyboard rhythm and duration",
+    "Brand voice, music-reference descriptions and rights constraints"
   ],
   "steps": [
-    "为旁白选择语气、语速、停顿与重读位置，保持脚本事实。",
-    "依据已提供分镜或脚本创建带时间码的声音 cue 清单。",
-    "定义音乐情绪、节奏变化与剪辑卡点，不假定已有音乐授权。",
-    "规划产品动作音效、环境音与转场音效。",
-    "检查旁白与音乐的可懂度、静音观看信息及混音优先级。"
+    "Choose vocal tone, pace, pauses and emphasis while preserving script facts.",
+    "Create a timecoded sound-cue list from the supplied storyboard or script.",
+    "Define musical mood, rhythmic changes and edit beats without assuming music rights are secured.",
+    "Plan product-action effects, ambience and transition effects.",
+    "Check voice and music intelligibility, muted-viewing information and mixing priorities."
   ],
   "sections": [
     {
       "key": "voice",
-      "title": "旁白指导",
-      "requirement": "最终配音文本、语气、语速、停顿与重音。"
+      "title": "Voiceover direction",
+      "requirement": "Final voiceover text, tone, pace, pauses and emphasis."
     },
     {
       "key": "cues",
-      "title": "声音时间线",
-      "requirement": "时间码、旁白、音乐变化、环境音与音效 cue。"
+      "title": "Sound timeline",
+      "requirement": "Timecodes, narration, music changes, ambience and sound cues."
     },
     {
       "key": "mix",
-      "title": "混音与交付",
-      "requirement": "声音层次、可懂度、音乐版权确认及交付规格建议。"
+      "title": "Mix and delivery",
+      "requirement": "Layering, intelligibility, music-rights confirmation and delivery recommendations."
     }
   ],
   "checks": [
-    "声音时间线应对应脚本或分镜时间。",
-    "不声称生成音频或获得版权。",
-    "未提供实际音频时只输出制作建议，不编造测量值。"
+    "Sound timing must align with the script or storyboard.",
+    "Do not claim audio has been generated or rights obtained.",
+    "Without actual audio, provide recommendations rather than invented measurements."
   ]
 };

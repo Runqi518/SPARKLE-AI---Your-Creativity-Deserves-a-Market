@@ -1,38 +1,38 @@
 # Product Demo Planner
 
-标识：`product-demo-planner`
+Identifier: `product-demo-planner`
 
-把抽象产品功能转化为可拍摄、可理解、可验证的演示动作。
+Translate abstract product features into demonstrations that can be filmed, understood and verified.
 
-## 适用场景
+## When to use
 
-产品功能不易解释、需要使用教程、卖点证明或广告中的功能展示。
+Explaining complex features, tutorials, benefit evidence or in-ad demonstrations.
 
-## 输入资料
+## Inputs
 
-- 产品功能、使用方法与限制
-- 目标人群及最重要的利益点
-- 拍摄条件、道具、场景和时长
-- 可验证的测试条件与产品资料
+- Features, instructions and limitations
+- Audience and priority benefits
+- Shooting conditions, props, setting and duration
+- Verifiable test conditions and product information
 
-## 执行步骤
+## Execution steps
 
-1. 列出功能、用户利益、观众需要看到的证据，优先选择 1–3 个关键功能。
-2. 为每个功能设计起始状态、使用动作和可见结果，注明道具、拍摄角度与时间。
-3. 将步骤按自然使用顺序排列，让观众能看出动作与结果的关系。
-4. 需要前后或竞品对比时列出相同测试条件；没有可核实依据时改成单产品演示。
-5. 写出每一步的屏幕说明与简短旁白，避免用不可见的抽象形容词代替证据。
-6. 注明无法直接展示的利益点、产品限制、待验证项目与可替代演示方法。
+1. Map features to user benefits and visible evidence, prioritizing one to three key features.
+2. Design a starting state, use action and visible outcome for each feature; specify props, camera angle and timing.
+3. Arrange steps in natural use order so viewers understand the relationship between actions and outcomes.
+4. For before/after or competitor comparisons, specify identical test conditions; without verifiable evidence, use a single-product demonstration.
+5. Write screen explanations and brief narration; do not replace evidence with invisible abstract adjectives.
+6. Identify benefits that cannot be shown directly, product limitations, verification tasks and alternate demonstration methods.
 
-## 输出内容
+## Deliverables
 
-- 功能—利益—可见证据映射
-- 演示步骤表：动作、角度、道具、画面结果、时长
-- 旁白与屏幕说明
-- 测试条件、限制和待补充素材
+- Feature–benefit–visible evidence mapping
+- Demonstration table: action, angle, props, visual outcome and duration
+- Narration and screen explanations
+- Test conditions, limitations and missing assets
 
-## 质量要求
+## Quality checks
 
-- 演示可按现有拍摄条件执行
-- 结果与功能有直接关系
-- 不使用虚构前后效果或不公平比较
+- Executable under available shooting conditions
+- Outcomes relate directly to features
+- No fabricated before/after outcomes or unfair comparisons

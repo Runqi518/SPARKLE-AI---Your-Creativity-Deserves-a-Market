@@ -48,7 +48,7 @@ export async function claimBounty(subjectId: string, raw: unknown) {
     const currentSubject = await Subject.findOne({ ...{ hooks: false }, where: { id: subjectId, status: "active" }, transaction });
     if (!currentSubject || currentSubject.get("ownerId") === currentActor().id || Number(currentSubject.get("rewardCents")) !== reward) throw new StudioError("Bounty changed or is unavailable. Reload before claiming it.", 409);
     if (await Commission.findOne({ ...{ hooks: false }, where: { subjectId }, transaction })) throw new StudioError("This bounty is already assigned.", 409);
-    const project = await createProject({ name: String(subject.get("name")).slice(0,50), mode: "free", industry: "互联网", subjectId }, transaction);
+    const project = await createProject({ name: String(subject.get("name")).slice(0,50), mode: "free", industry: "Internet", subjectId }, transaction);
     const row = await Commission.create({ id: randomUUID(), requestId: parsed.data.requestId, subjectId, buyerId: subject.get("ownerId"), projectId: project.id }, { transaction });
     const order = await createOrder({ requestId: `commission:${row.get("id")}`, type: "ad_commission", projectId: project.id, name: String(subject.get("name")), amountCents: reward, clientName: String(subject.get("name")) }, transaction);
     await row.update({ orderId: order.id }, { transaction });

@@ -6,38 +6,38 @@ export const definition: AgentDefinition = {
   "dependencies": [
     "creative-director"
   ],
-  "purpose": "确定产品视觉身份和展示规则，交付可用于拍摄或生成节点的产品画面方案。",
+  "purpose": "Define product visual identity and presentation rules, delivering visual plans for shooting or generation nodes.",
   "inputs": [
-    "产品文字资料、包装与标识规则",
-    "已有参考素材的描述、创意方向"
+    "Product descriptions, packaging and identity rules",
+    "Descriptions of existing references and the creative direction"
   ],
   "steps": [
-    "建立产品事实清单：外观、尺寸描述、材质、颜色、包装、Logo 与禁止改动项。",
-    "没有可读图像内容时明确仅基于描述工作，不声称看过链接图像。",
-    "设计主视觉、细节、使用场景的产品展示方案。",
-    "分别编写画面生成提示词和需保持一致的约束。",
-    "检查是否新增不存在的结构、标识或功能，列出所需补充参考。"
+    "Establish product facts: appearance, dimensions, materials, colors, packaging, logo and immutable details.",
+    "When image content is unavailable, work from descriptions and do not claim to have viewed linked images.",
+    "Design hero visuals, detail shots and product-use presentations.",
+    "Write separate generation prompts and consistency constraints for each visual.",
+    "Check for invented structures, logos or functions; list additional references needed."
   ],
   "sections": [
     {
       "key": "identity",
-      "title": "产品视觉规范",
-      "requirement": "固定外观特征、材质、颜色、标识与禁止变更项。"
+      "title": "Product visual specifications",
+      "requirement": "Fixed appearance, materials, colors, identity and prohibited changes."
     },
     {
       "key": "visuals",
-      "title": "产品画面方案",
-      "requirement": "主视觉、特写、使用展示和构图建议。"
+      "title": "Product visual plan",
+      "requirement": "Hero visuals, close-ups, usage demonstrations and composition recommendations."
     },
     {
       "key": "prompts",
-      "title": "产品生成提示词",
-      "requirement": "逐方案提示词、排除项与参考素材要求。"
+      "title": "Product generation prompts",
+      "requirement": "Prompts for each concept, exclusions and reference requirements."
     }
   ],
   "checks": [
-    "未知外观细节不得描述为真实产品事实。",
-    "产品标识、结构和尺寸比例需一致。",
-    "输出提示词和计划，不声称已生成图片。"
+    "Do not present unknown appearance details as product facts.",
+    "Keep identity, structure and dimensional proportions consistent.",
+    "Deliver prompts and plans without claiming images have been generated."
   ]
 };

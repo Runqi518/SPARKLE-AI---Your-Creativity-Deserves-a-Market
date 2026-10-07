@@ -1,38 +1,38 @@
 # Visual Consistency Check
 
-标识：`visual-consistency-check`
+Identifier: `visual-consistency-check`
 
-基于用户提供的描述、文本标注或已观察到的资料，检查跨镜头视觉连续性。
+Check cross-shot visual continuity using supplied descriptions, annotations or observed material.
 
-## 适用场景
+## When to use
 
-多镜头广告、角色或产品多次出现，或需要排查不同生成素材的风格漂移。
+Multi-shot ads, recurring characters or products, and style drift across generated assets.
 
-## 输入资料
+## Inputs
 
-- 各镜头描述、文字标注或实际可读取的视觉资料
-- 角色、产品与场景的基准设定
-- 色调、光线、材质、比例和品牌视觉规范
-- 镜头编号及叙事顺序
+- Shot descriptions, annotations or readable visual material
+- Baseline character, product and scene definitions
+- Palette, lighting, materials, proportions and brand specifications
+- Shot IDs and narrative order
 
-## 执行步骤
+## Execution steps
 
-1. 建立一致性基准：角色身份与服装、产品外观与 Logo、场景结构、灯光、色调和材质。
-2. 逐镜头对照已提供信息，记录明确冲突、可能冲突和无法检查的项目。
-3. 按高、中、低优先级排列问题，并指向具体镜头或文本片段。
-4. 为每个问题给出最小修正方案和需要统一的提示词或设计属性。
-5. 汇总可跨镜头复用的固定描述；保留有意的场景变化和叙事变化。
-6. 只有图片或视频链接而无法读取内容时说明检查范围，并索取截图标注或镜头描述。
+1. Establish a baseline for identity and wardrobe, product appearance and logo, scene structure, lighting, palette and materials.
+2. Compare each shot against supplied information; record definite conflicts, possible conflicts and uncheckable items.
+3. Rank issues by high, medium and low priority, pointing to specific shots or text.
+4. Provide the smallest correction for each issue and the prompts or attributes to standardize.
+5. Summarize reusable fixed descriptions while retaining deliberate scene and narrative changes.
+6. If linked images or videos cannot be read, explain the scope and request annotated screenshots or shot descriptions.
 
-## 输出内容
+## Deliverables
 
-- 一致性基准表
-- 问题表：镜头、依据、冲突、优先级、修正方案
-- 跨镜头固定描述或提示词
-- 无法检查及需补充资料的项目
+- Consistency baseline
+- Issue table: shot, evidence, conflict, priority and correction
+- Fixed cross-shot descriptions or prompts
+- Uncheckable items and missing information
 
-## 质量要求
+## Quality checks
 
-- 每个判断都有提供的资料作为依据
-- 不宣称看过无法读取的图片或视频帧
-- 不把合理叙事变化误判为连续性错误
+- Every judgment is grounded in supplied information
+- No claims of viewing inaccessible images or frames
+- Intentional narrative changes are not treated as continuity errors

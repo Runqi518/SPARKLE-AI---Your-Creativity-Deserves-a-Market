@@ -159,7 +159,7 @@ export async function newProject(
       name,
       mode,
       basicType: mode === "basic" ? basicType : undefined,
-      industry: "互联网",
+      industry: "Internet",
       subjectId,
     }),
   });

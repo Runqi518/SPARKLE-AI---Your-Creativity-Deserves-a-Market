@@ -1,34 +1,34 @@
 # Caption polish
 
-标识：`caption-polish`
+Identifier: `caption-polish`
 
-提高字幕和画面短文案的清晰度、长度适配与品牌一致性。
+Improve caption and short visual copy clarity, length and brand consistency.
 
-## 适用场景
+## When to use
 
-字幕过长、表达不自然、阅读负担大或品牌语气不一致。
+Long, unnatural, hard-to-read or off-brand captions.
 
-## 输入资料
+## Inputs
 
-- 原字幕、口播和时长
-- 品牌简报与画幅
-- 必须保留的事实、价格和限制条件
+- Source captions, speech and duration
+- Brand brief and aspect ratio
+- Facts, prices and restrictions to retain
 
-## 执行步骤
+## Execution steps
 
-1. 标出冗长、模糊、重复及语气不一致的位置。
-2. 改成短句并按意思分行。
-3. 根据时长提出停留与分屏建议。
-4. 逐条核对产品事实和优惠条件，提供改写对照。
+1. Identify verbosity, ambiguity, repetition and inconsistent tone.
+2. Use short sentences and semantic line breaks.
+3. Recommend display time and screen divisions based on duration.
+4. Verify facts and offer conditions and provide rewrite comparisons.
 
-## 输出内容
+## Deliverables
 
-- 原文与改写对照
-- 推荐分行与显示时间
-- 需确认的语义问题
+- Original and revised copy
+- Recommended line breaks and display timing
+- Meaning questions to confirm
 
-## 质量要求
+## Quality checks
 
-- 关键事实与条件不丢失
-- 文字自然且适合阅读
-- 缺少时长时不虚构精确字幕时间
+- Preserve key facts and conditions
+- Natural, readable wording
+- No invented precise timing when duration is missing

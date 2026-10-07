@@ -1,38 +1,38 @@
 # Shot List Builder
 
-标识：`shot-list-builder`
+Identifier: `shot-list-builder`
 
-将广告脚本拆成可交给拍摄或生成流程使用的逐镜头清单。
+Break an advertising script into a shot-by-shot list for shooting or generation.
 
-## 适用场景
+## When to use
 
-已有创意或脚本，需要分镜、拍摄计划、镜头生成提示或剪辑交接。
+Turning an idea or script into storyboards, shooting plans, prompts or an editing handoff.
 
-## 输入资料
+## Inputs
 
-- 脚本、核心卖点与 CTA
-- 总时长、画幅与投放位置
-- 人物、产品、场景及参考描述
-- 可用素材、拍摄条件与生成限制
+- Script, core benefits and CTA
+- Total duration, aspect ratio and placement
+- Characters, product, setting and references
+- Available assets, shooting conditions and generation limits
 
-## 执行步骤
+## Execution steps
 
-1. 确认总时长与叙事结构，并建立连续、不重叠的镜头时间轴。
-2. 为每个镜头指定叙事目的、景别、机位、主体动作、运镜和环境。
-3. 同步安排口播、字幕、音乐或音效，并标出转场及镜头之间的连续性要求。
-4. 区分实拍、已有素材、待生成素材；为待生成镜头提供包含主体、动作、环境、镜头和风格的文本提示。
-5. 检查镜头时长总和是否等于目标时长，字幕是否有阅读时间，结尾 CTA 是否完整。
-6. 列出镜头依赖、需要补充的素材和无法在单镜头中实现的复杂动作。
+1. Confirm duration and narrative structure; establish a continuous, non-overlapping timeline.
+2. Specify narrative purpose, shot size, camera position, subject action, movement and environment for each shot.
+3. Align speech, captions, music and effects; mark transitions and continuity requirements.
+4. Distinguish live action, existing assets and assets to generate; write prompts covering subject, action, environment, camera and style.
+5. Verify that shot durations sum to the target duration, captions allow reading time and the final CTA is complete.
+6. List shot dependencies, missing assets and complex actions that cannot fit within a single shot.
 
-## 输出内容
+## Deliverables
 
-- 镜头表：编号、起止时间、目的、画面、景别、运镜、动作、音频、字幕、转场
-- 按镜头编号的生成提示词或拍摄说明
-- 素材依赖与连续性注意事项
-- 总时长核对
+- Shot table: ID, start/end, purpose, visuals, shot size, movement, action, audio, captions and transition
+- Prompts or shooting instructions by shot ID
+- Asset dependencies and continuity notes
+- Total-duration check
 
-## 质量要求
+## Quality checks
 
-- 时间轴无空缺或重复计时
-- 每个镜头可独立理解和执行
-- 只提供镜头指令，不宣称已经生成视频或修改画布
+- No timeline gaps or double-counted time
+- Each shot is understandable and executable independently
+- Deliver instructions without claiming video generation or canvas changes

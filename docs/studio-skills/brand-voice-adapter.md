@@ -1,38 +1,38 @@
 # Brand Voice Adapter
 
-标识：`brand-voice-adapter`
+Identifier: `brand-voice-adapter`
 
-在保留事实和表达目的的基础上，把文案改写为一致的品牌语气。
+Rewrite copy in a consistent brand voice while preserving facts and communication intent.
 
-## 适用场景
+## When to use
 
-多个创作者或广告版本语气不统一，或需要将现有文案改为品牌风格。
+Aligning creators or variants, or adapting existing copy to a brand style.
 
-## 输入资料
+## Inputs
 
-- 待改写文案及用途
-- 品牌简报、语气关键词与范例
-- 常用词、禁用词和不可改变的事实
-- 受众、平台与文字长度要求
+- Source copy and purpose
+- Brand brief, voice keywords and examples
+- Preferred and prohibited words and immutable facts
+- Audience, platform and length limits
 
-## 执行步骤
+## Execution steps
 
-1. 从品牌资料中归纳语气特征、句式节奏、词汇偏好和表达边界。
-2. 标出原文中偏离品牌的句子，并保留必须表达的产品事实、优惠条件和 CTA。
-3. 生成主版本和一个表达力度不同的备选版本，避免只机械替换形容词。
-4. 逐项说明重要改写原因及与品牌范例的关系。
-5. 补充可复用的用词建议与简短语气规则，便于下一轮创作。
-6. 没有品牌简报时提出一个明确标注为建议的临时语气方向，并请求确认。
+1. Derive tone, sentence rhythm, vocabulary preferences and boundaries from brand materials.
+2. Identify off-brand sentences while preserving product facts, offer conditions and CTA.
+3. Create a primary version and an alternative with different intensity; avoid mechanical adjective swaps.
+4. Explain major changes and how they relate to brand examples.
+5. Provide reusable vocabulary guidance and short voice rules.
+6. Without a brand brief, propose a clearly labeled temporary direction and request confirmation.
 
-## 输出内容
+## Deliverables
 
-- 品牌语气规则
-- 主版本与备选版本
-- 原文—改写—理由对照
-- 常用词、避用词和待确认方向
+- Brand voice rules
+- Primary and alternate copy
+- Original–rewrite–rationale comparison
+- Preferred and avoided words and directions to confirm
 
-## 质量要求
+## Quality checks
 
-- 产品事实、优惠条件与必要披露不被改掉
-- 改写符合提供的品牌范例
-- 未提供的品牌偏好不冒充已有规范
+- Facts, offer conditions and disclosures are preserved
+- Rewrites fit supplied examples
+- Unprovided preferences are not presented as established rules

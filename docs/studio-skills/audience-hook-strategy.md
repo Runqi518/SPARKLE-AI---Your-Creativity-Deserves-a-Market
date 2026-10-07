@@ -1,38 +1,38 @@
 # Audience & Hook Strategy
 
-标识：`audience-hook-strategy`
+Identifier: `audience-hook-strategy`
 
-把受众需求、真实产品价值和广告目标转化为可测试的创意角度与开场钩子。
+Turn audience needs, genuine product value and advertising objectives into testable angles and opening hooks.
 
-## 适用场景
+## When to use
 
-准备新广告、已有素材开场吸引力不足，或需要为不同人群设计不同切入点。
+Developing a new ad, improving weak openings or tailoring angles to different audiences.
 
-## 输入资料
+## Inputs
 
-- 产品或服务及已确认的卖点
-- 受众、使用场景、痛点与顾虑
-- 广告目标、平台、时长
-- 品牌语气、可用证明与禁用表述
+- Product or service and confirmed selling points
+- Audience, use cases, pain points and concerns
+- Advertising objective, platform and duration
+- Brand voice, available evidence and prohibited claims
 
-## 执行步骤
+## Execution steps
 
-1. 从资料中提取受众的任务、痛点、期望结果、购买阻力；事实与假设分别标注。
-2. 将每个产品功能映射为受众能理解的利益点，优先采用已提供证据的利益点。
-3. 选择 3 个不同广告角度，例如问题解决、实际演示、反常识发现；避免仅替换形容词。
-4. 每个角度写 2 个适合前 1–3 秒的钩子，同时给出第一帧画面与屏幕文案。
-5. 逐一说明钩子对应的人群、动机和需要兑现的后续信息，避免开头承诺与正文脱节。
-6. 推荐优先测试的 2 个钩子，并写出测试假设；关键信息不足时列出最少补充问题。
+1. Extract audience jobs, pain points, desired outcomes and purchase objections; label facts and assumptions separately.
+2. Map each feature to an audience benefit, prioritizing benefits supported by supplied evidence.
+3. Choose three distinct angles, such as problem-solving, demonstration and counterintuitive discovery; do not merely replace adjectives.
+4. Write two hooks per angle for the first 1–3 seconds, including the first-frame visual and on-screen copy.
+5. Explain the audience, motivation and follow-through required for each hook; align the opening promise with the body.
+6. Recommend two hooks to test first and state test hypotheses; ask the minimum necessary questions when key information is missing.
 
-## 输出内容
+## Deliverables
 
-- 受众洞察：事实 / 假设 / 待确认
-- 3 个广告角度，每个含目标人群与核心利益
-- 6 个开场方案：口播、首帧画面、屏幕文案、承接方式
-- 2 个优先测试方案与测试假设
+- Audience insights: facts, assumptions and items to confirm
+- Three angles with target audience and core benefit
+- Six openings: spoken copy, first frame, on-screen text and continuation
+- Two priority tests and hypotheses
 
-## 质量要求
+## Quality checks
 
-- 钩子能由正文和真实产品信息兑现
-- 没有虚构用户洞察、研究数据或效果保证
-- 不同方案在动机或表现方式上有实质区别
+- The body and actual product information fulfill each hook
+- No invented insights, research data or outcome guarantees
+- Options differ meaningfully in motivation or execution

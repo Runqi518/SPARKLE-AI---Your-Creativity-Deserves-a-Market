@@ -94,7 +94,7 @@ export async function pollVideo(config: ProviderConfig, providerJobId: string, c
 }
 
 export async function generateText(prompt: string, rolePrompt: string, media: { images: string[]; videos: string[] } = { images: [], videos: [] }) {
-  if (!prompt.trim() || prompt.length > 180000 || rolePrompt.length > 20000) throw new StudioError("Assistant prompt is empty or too long.");
+  if (!prompt.trim() || prompt.length > 180000 || rolePrompt.length > 40000) throw new StudioError("Assistant prompt is empty or too long.");
   const result = await submitGeneration(requireProvider("text"), { prompt, rolePrompt, ...media, options: { count: 1, aspectRatio: "16:9", resolution: "1K", duration: 5 } });
   return result.candidates[0].content!;
 }

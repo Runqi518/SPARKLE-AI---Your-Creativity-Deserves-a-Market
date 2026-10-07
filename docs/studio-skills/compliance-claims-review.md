@@ -1,38 +1,38 @@
 # Compliance & Claims Review
 
-标识：`compliance-claims-review`
+Identifier: `compliance-claims-review`
 
-筛查广告中可能缺乏依据、存在误导或需要进一步审核的宣传表达。
+Screen advertising claims for missing support, misleading wording or further review needs.
 
-## 适用场景
+## When to use
 
-发布前检查功效、比较、价格、证言、优惠与行业敏感表述。
+Pre-publication review of benefits, comparisons, prices, testimonials, offers and sensitive claims.
 
-## 输入资料
+## Inputs
 
-- 广告脚本、字幕、优惠文字和落地页资料
-- 目标市场、行业和投放平台
-- 产品证据、测试报告、授权或真实证言资料
-- 用户提供的适用规则与品牌限制
+- Script, captions, offers and landing-page materials
+- Target market, industry and platform
+- Evidence, test reports, permissions and genuine testimonials
+- Applicable rules and brand restrictions supplied by the user
 
-## 执行步骤
+## Execution steps
 
-1. 逐条提取可验证的宣传主张，包括绝对化用语、数字、功效、保证、比较与证言。
-2. 将每条主张关联到已有证据，区分有依据、依据不足、资料缺失。
-3. 检查优惠资格、有效期、费用和重要限制是否完整；检查证言是否真实及授权是否待确认。
-4. 按风险优先级列出原句、疑点、需要的证明和保守改写建议。
-5. 市场、行业或平台要求不明确时提出必要补充问题，不能凭空声称某条法律或政策适用。
-6. 输出需由业务负责人或专业审核人员确认的项目，明确这是一轮资料筛查。
+1. Extract verifiable claims, including absolutes, numbers, benefits, guarantees, comparisons and testimonials.
+2. Link each claim to evidence and distinguish supported, insufficiently supported and missing information.
+3. Check eligibility, validity, fees and restrictions; identify testimonial authenticity and permission questions.
+4. Prioritize risks with original text, concern, evidence needed and conservative rewrites.
+5. Ask necessary questions when market, industry or platform requirements are unclear; do not invent applicable laws or policies.
+6. List items for business-owner or specialist confirmation and identify the work as information screening.
 
-## 输出内容
+## Deliverables
 
-- 宣传主张审查表：原句、依据、疑点、优先级、改写
-- 证据与优惠细则缺项清单
-- 保守改写后的文案
-- 待进一步审核的问题
+- Claims table: source wording, evidence, concern, priority and rewrite
+- Missing evidence and offer details
+- Conservative revised copy
+- Questions for further review
 
-## 质量要求
+## Quality checks
 
-- 不提供无资料支撑的法律或平台合规保证
-- 不编造研究、认证、证言或法规引用
-- 保守改写仍准确反映实际产品与优惠
+- No unsupported legal or platform-compliance guarantees
+- No fabricated studies, certifications, testimonials or regulatory citations
+- Conservative copy still accurately reflects products and offers

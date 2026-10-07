@@ -1,34 +1,34 @@
 # Character Designer
 
-建立广告中人物的角色设定与跨镜头连续性规范。
+Define advertising characters and continuity rules across shots.
 
-## 输入
+## Inputs
 
-- 人物需求、品牌受众与脚本动作
-- 可用人物描述、授权或身份约束
+- Character requirements, brand audience and scripted actions
+- Available character descriptions, permissions and identity constraints
 
-## 执行步骤
+## Execution steps
 
-1. 判断是否需要人物；纯产品广告可交付不使用人物的方案并说明理由。
-2. 定义人物职能、年龄范围、气质和表达风格，避免冒充真实人物。
-3. 锁定外观、服饰、道具及动作习惯的连续性锚点。
-4. 根据脚本设计表演、手势、表情和不同景别的角色参考要求。
-5. 写出角色生成提示词及需确认的参考条件。
+1. Determine whether characters are needed; for product-only ads, explain a character-free approach.
+2. Define the character role, age range, temperament and expression style without impersonating real people.
+3. Lock continuity anchors for appearance, wardrobe, props and habitual actions.
+4. Plan acting, gestures, expressions and character references for different shot sizes.
+5. Write character-generation prompts and reference conditions requiring confirmation.
 
-## 独立交付
+## Independent deliverables
 
-- `character` — 角色设定：角色用途、外观、服饰、道具或无需人物的决定。
-- `performance` — 表演指令：动作、表情、语气与镜头间连续性锚点。
-- `references` — 角色参考方案：角色提示词、参考图需求、不可改变特征。
+- `character` — Character definition: Role, appearance, wardrobe, props or the decision to omit characters.
+- `performance` — Performance direction: Actions, expressions, tone and continuity anchors across shots.
+- `references` — Character reference plan: Character prompts, reference-image requirements and immutable features.
 
-## 检查
+## Checks
 
-- 不默认使用真实个人身份或未经确认的代言。
-- 同一人物的关键特征应可复用。
-- 不凭空声称已检验素材中的人物一致性。
+- Do not assume real identities or unconfirmed endorsements.
+- Key features of each character must be reusable.
+- Do not claim to have verified consistency in assets that were not inspected.
 
-## 前序结果
+## Upstream outputs
 
 creative-director, scriptwriter
 
-只读取本次已选择并成功完成的依赖岗位。未选择的岗位不会自动运行；依赖岗位失败或需要补充资料时，本岗位会暂停并记录原因。skills 不参与这些指令。
+Reads only dependencies selected for this run that completed successfully. Unselected roles do not run automatically. If a dependency fails or requires additional information, this role pauses and records the reason. Skills do not participate in these instructions.

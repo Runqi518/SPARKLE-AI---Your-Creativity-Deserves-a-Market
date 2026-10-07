@@ -1,34 +1,34 @@
 # Motion graphics
 
-标识：`motion-graphics`
+Identifier: `motion-graphics`
 
-规划可编辑的文字、数据与图形动画。
+Plan editable text, data and graphic animation.
 
-## 适用场景
+## When to use
 
-需要卖点卡片、数字展示、标题动画或信息图动效。
+Benefit cards, numerical displays, title animation or animated infographics.
 
-## 输入资料
+## Inputs
 
-- 需要表达的信息与品牌视觉
-- 画幅、时长和镜头背景
-- 真实数据与可用图形
+- Information and brand visuals
+- Aspect ratio, duration and shot background
+- Actual data and available graphics
 
-## 执行步骤
+## Execution steps
 
-1. 确定信息层级并简化每屏内容。
-2. 逐元素定义出现时刻、停留时长、运动方向和退场方式。
-3. 描述布局、文字、图形及与镜头的配合。
-4. 标注可编辑属性与字幕阅读时间。
+1. Establish hierarchy and simplify each screen.
+2. Define appearance, display duration, movement direction and exit for every element.
+3. Describe layout, text, graphics and coordination with shots.
+4. Identify editable properties and caption reading time.
 
-## 输出内容
+## Deliverables
 
-- 动效时间轴
-- 元素与可编辑属性清单
-- 制作说明
+- Animation timeline
+- Elements and editable properties
+- Production instructions
 
-## 质量要求
+## Quality checks
 
-- 数字都有资料来源
-- 动效不遮挡主体或妨碍阅读
-- 提供计划，不宣称已经渲染动画
+- Numbers have sources
+- Animation does not obscure subjects or hinder reading
+- Deliver a plan without claiming rendered animation

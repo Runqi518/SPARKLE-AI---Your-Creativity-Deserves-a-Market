@@ -309,7 +309,7 @@ try {
       const callsBefore = calls.length; assert.equal((await get(video.job.id)).job.status, "failed"); assert.equal(calls.length, callsBefore);
     });
     await t.test("real project uses freshest supplied snapshot and never overwrites canvas", async () => {
-      const project = await createProject({ name: "Isolated generation test", industry: "互联网", mode: "free" });
+      const project = await createProject({ name: "Isolated generation test", industry: "Internet", mode: "free" });
       const body = input(); body.projectId = project.id; body.snapshot.nodes[0].data.content = "Fresh unsaved canvas edit";
       assert.equal((await generate(body)).status, "succeeded"); assert.match(calls.at(-1).payload.messages[1].content, /Fresh unsaved canvas edit/);
       assert.deepEqual((await getProject(project.id)).canvas, project.canvas);
