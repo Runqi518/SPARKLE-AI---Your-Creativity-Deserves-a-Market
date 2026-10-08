@@ -86,6 +86,7 @@ export async function createAgentRun(raw: unknown): Promise<{ run: AgentRun; con
   const selected = agentDefinitions.filter(agent => input.agents.includes(agent.name));
   for (const id of input.attachedSkillIds) {
     const skill = skillById(id)!;
+    if (skill.execution !== "text") throw new StudioError(`${skill.name} runs directly from the skills panel, not as a text-only agent attachment.`);
     if (!selected.some(agent => skill.compatibleAgents.includes(agent.id))) throw new StudioError(`${skill.name} is not compatible with the selected agents.`);
     if (skill.dependencies.some(required => !input.attachedSkillIds.includes(required))) throw new StudioError(`${skill.name} requires another skill to be attached.`);
     if (skill.conflicts.some(other => input.attachedSkillIds.includes(other))) throw new StudioError(`${skill.name} conflicts with another attached skill.`);

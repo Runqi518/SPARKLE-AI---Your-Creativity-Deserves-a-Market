@@ -53,7 +53,7 @@ import { AgentRunMessage } from "./AgentRunMessage";
 import { agentRunText, type AgentRun, type AgentSubmission } from "../../../schemas/studio-agent";
 import { coreSkillRegistry, skillRegistry } from "@/lib/studio/skill-registry";
 import { GenerationNode, NodeActions, kindIcons as typeIcons, defaultGenerationOptions } from "./GenerationNode";
-import type { GenerationCandidate, ProviderSummary, StudioJob } from "../../../schemas/studio-generation";
+import type { GenerationCandidate, ProviderSummary, StudioGenerationOptions, StudioJob } from "../../../schemas/studio-generation";
 import {
   agents,
   skills,
@@ -71,7 +71,7 @@ import {
 
 const nodeTypes = { asset: GenerationNode };
 type Snapshot = { nodes: StudioNode[]; edges: Edge[] };
-type Message = { role: "user" | "assistant"; content: string; label?: string; runId?: string; requestId?: string; agentInput?: AgentSubmission };
+type Message = { role: "user" | "assistant"; content: string; label?: string; runId?: string; requestId?: string; agentInput?: AgentSubmission; mediaNodeId?: string };
 
 function subscribeScreen(listener: () => void) {
   const query = window.matchMedia("(max-width: 760px)");
@@ -114,6 +114,7 @@ function CanvasEditor({ id }: { id: string }) {
   const [panel, setPanel] = useState<"agents" | "skills" | null>(null);
   const [team, setTeam] = useState<string[]>([agents[0].name]);
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
+  const [skillMediaOptions, setSkillMediaOptions] = useState<StudioGenerationOptions>(defaultGenerationOptions);
   const [skillSearch, setSkillSearch] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [executionMode, setExecutionMode] = useState<"agents" | "skills">("agents");
@@ -144,6 +145,7 @@ function CanvasEditor({ id }: { id: string }) {
     const node = nodes.find(n => n.id === nodeId);
     return node ? [node] : [];
   });
+  const selectedMediaSkill = executionMode === "skills" ? skillRegistry.find(skill => activeSkills.includes(skill.name) && skill.execution !== "text") : undefined;
   const editNode = nodes.find((n) => n.id === editing);
   const totalDuration = Math.max(
     15,
@@ -560,7 +562,7 @@ function CanvasEditor({ id }: { id: string }) {
     setSubmitting(current => [...current, nodeId]);
     configure(nodeId, { generationError: undefined });
     try {
-      const payload = JSON.stringify({ projectId: id, nodeId, snapshot: { nodes: nodes.map(n => ({ ...n, data: Object.fromEntries(Object.entries(n.data).filter(([key]) => !["generationError", "generationStatus", "jobId", "candidates"].includes(key))) })), edges }, options: { ...defaultGenerationOptions, resolution: node.data.kind === "video" ? "720p" : "1K", ...node.data.generationOptions } });
+      const payload = JSON.stringify({ projectId: id, nodeId, snapshot: { nodes: nodes.map(n => ({ ...n, data: Object.fromEntries(Object.entries(n.data).filter(([key]) => !["generationError", "generationStatus", "jobId", "candidates"].includes(key))) })), edges }, options: { ...defaultGenerationOptions, resolution: node.data.kind === "video" ? "720p" : "1K", ...node.data.generationOptions }, ...(node.data.mediaSkillId ? { mediaSkillId: node.data.mediaSkillId } : {}) });
       // An ambiguous submission is retried with the exact same payload and ID, including after reload.
       const existing = generationAttempts.current[nodeId];
       if (existing && existing.payload !== payload) throw new Error("The previous submission is unresolved. Restore its inputs or refresh its job status before submitting a different request.");
@@ -651,6 +653,46 @@ function CanvasEditor({ id }: { id: string }) {
       history: messages.filter(message => message.content && message.label !== "Connection notice").slice(-6).map(message => ({ role: message.role, content: message.content.slice(0, 20000), label: message.label })),
     };
     const userMessage: Message = { role: "user", content: input };
+    if (selectedMediaSkill) {
+      setBusy(true);
+      let nodeId: string | undefined;
+      try {
+        if (activeSkills.length !== 1) throw new Error("Run one media generation skill at a time.");
+        const kind = selectedMediaSkill.execution as "image" | "video";
+        if (!providers.some(provider => provider.kind === kind && provider.configured)) throw new Error(`Configure the ${kind} provider before running ${selectedMediaSkill.name}.`);
+        if (nodes.length >= 200 || edges.length + referencedNodes.length > 1000) throw new Error("Canvas limit reached. Remove nodes or connections before generating.");
+        const center = flow.screenToFlowPosition({ x: window.innerWidth * 0.45, y: window.innerHeight * 0.35 });
+        const options: StudioGenerationOptions = { ...skillMediaOptions, resolution: kind === "video" && !["720p", "1080p"].includes(skillMediaOptions.resolution) ? "720p" : skillMediaOptions.resolution };
+        const node: StudioNode = { id: crypto.randomUUID(), type: "asset", dragHandle: ".node-drag", position: { x: center.x - 170, y: center.y - 80 }, data: { label: selectedMediaSkill.name, kind, prompt: input, mediaSkillId: selectedMediaSkill.id as "image-generation" | "video-generation", generationOptions: options, start: 0, duration: kind === "video" ? options.duration : 5, track: "Video" } };
+        nodeId = node.id;
+        const nextEdges = [...edges, ...referencedNodes.map(reference => ({ id: crypto.randomUUID(), source: reference.id, target: node.id, sourceHandle: "output", targetHandle: "input" }))];
+        const nextNodes = [...nodes, node];
+        const payload = JSON.stringify({ projectId: id, nodeId, snapshot: { nodes: nextNodes.map(n => ({ ...n, data: Object.fromEntries(Object.entries(n.data).filter(([key]) => !["generationError", "generationStatus", "jobId", "candidates"].includes(key))) })), edges: nextEdges }, options, mediaSkillId: node.data.mediaSkillId });
+        remember();
+        setNodes(nextNodes);
+        setEdges(nextEdges);
+        setSelected(node.id);
+        const attempt = { payload, requestId: crypto.randomUUID() };
+        generationAttempts.current[node.id] = attempt;
+        storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
+        const { job } = await request<{ job: StudioJob }>("/api/studio/generations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...JSON.parse(payload), requestId: attempt.requestId }) });
+        delete generationAttempts.current[node.id];
+        storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
+        setJobs(current => ({ ...current, [node.id]: job }));
+        configure(node.id, { jobId: job.id, generationStatus: job.status, generationError: job.error });
+        setMessages(current => [...current, userMessage, { role: "assistant", label: selectedMediaSkill.name, content: `${selectedMediaSkill.name} started on the canvas. Review the generated candidates before applying one.`, mediaNodeId: node.id }]);
+      } catch (error) {
+        const status = (error as Error & { status?: number }).status;
+        if (nodeId && status && (status < 500 || status === 503)) {
+          delete generationAttempts.current[nodeId];
+          storeLocal(`sparkle:generation-attempts:${id}`, generationAttempts.current);
+        }
+        if (nodeId) configure(nodeId, { generationError: (error as Error).message });
+        setPrompt(input);
+        setNotice((error as Error).message);
+      } finally { setBusy(false); }
+      return;
+    }
     if (executionMode === "agents") {
       const submission: AgentSubmission = { ...source, requestId: crypto.randomUUID(), projectId: id, agents: [...team], attachedSkillIds: skillRegistry.filter(skill => activeSkills.includes(skill.name)).map(skill => skill.id) };
       // Retain the exact request for safe retries and recovery after navigation.
@@ -1165,7 +1207,7 @@ function CanvasEditor({ id }: { id: string }) {
                 {panel === "skills" && <div className="skills-library-controls">
                   <input aria-label="Search skills" placeholder="Search skills" value={skillSearch} onChange={event => setSkillSearch(event.target.value)} />
                   <div className="skill-mode-actions">
-                    <button aria-pressed={executionMode === "agents"} onClick={() => setExecutionMode("agents")}>Use with team</button>
+                    <button aria-pressed={executionMode === "agents"} disabled={activeSkills.some(name => skillRegistry.some(skill => skill.name === name && skill.execution !== "text"))} onClick={() => setExecutionMode("agents")}>Use with team</button>
                     <button aria-pressed={executionMode === "skills"} onClick={() => setExecutionMode("skills")}>Run skills only</button>
                   </div>
                 </div>}
@@ -1185,7 +1227,12 @@ function CanvasEditor({ id }: { id: string }) {
                           ? list.filter((n) => n !== item.name)
                           : [...list, item.name];
                         if (panel === "agents") { setTeam(next); setExecutionMode("agents"); }
-                        else {
+                        else if (metadata?.execution !== "text") {
+                          setActiveSkills(list.includes(item.name) ? [] : [item.name]);
+                          setExecutionMode(list.includes(item.name) ? "agents" : "skills");
+                          setSkillMediaOptions({ ...defaultGenerationOptions, resolution: metadata?.execution === "video" ? "720p" : "1K" });
+                        } else {
+                          if (list.some(name => skillRegistry.some(skill => skill.name === name && skill.execution !== "text"))) { setNotice("Remove the media generation skill before adding text skills."); return; }
                           if (next.length > 3) { setNotice("Attach up to three skills per workflow."); return; }
                           setActiveSkills(next);
                           if (!next.length) setExecutionMode("agents");
@@ -1197,7 +1244,7 @@ function CanvasEditor({ id }: { id: string }) {
                         <small>{item.role}</small>
                         {panel === "agents" && <small>Core: {coreSkillRegistry.filter(skill => skill.agentId === item.id).map(skill => skill.name).join(", ") || "Role definition"}</small>}
                         {metadata && <small>{metadata.category} · {metadata.trigger}</small>}
-                        {metadata && <small>Compatible: {metadata.compatibleAgents.length === agents.length ? "All agents" : metadata.compatibleAgents.map(agentId => agents.find(agent => agent.id === agentId)?.name).filter(Boolean).join(", ")}</small>}
+                        {metadata && <small>{metadata.execution === "text" ? `Compatible: ${metadata.compatibleAgents.length === agents.length ? "All agents" : metadata.compatibleAgents.map(agentId => agents.find(agent => agent.id === agentId)?.name).filter(Boolean).join(", ")}` : `Direct ${metadata.execution} generation · runs without a text agent`}</small>}
                       </span>
                       {list.includes(item.name) ? (
                         <Check size={16} />
@@ -1242,7 +1289,7 @@ function CanvasEditor({ id }: { id: string }) {
                     onAdd={(agentName, content) => add("text", { label: agentName, content, caption: "Review before use" })}
                   /> : <p>{message.content}</p>}
                   {message.role === "assistant" &&
-                    message.label !== "Connection notice" && !message.runId && !message.agentInput && (
+                    message.label !== "Connection notice" && !message.runId && !message.agentInput && !message.mediaNodeId && (
                       <button
                         className="text-button"
                         onClick={() =>
@@ -1256,6 +1303,7 @@ function CanvasEditor({ id }: { id: string }) {
                         Add to canvas <Plus size={13} />
                       </button>
                     )}
+                  {message.mediaNodeId && <button className="text-button" onClick={() => { const node = nodes.find(item => item.id === message.mediaNodeId); if (node) { setSelected(node.id); void flow.setCenter(node.position.x + 165, node.position.y + 160, { zoom: Math.max(flow.getZoom(), 0.7), duration: 300 }); } }}>Review on canvas <ArrowUpRight size={13} /></button>}
                 </article>
               ))}
               {busy && (
@@ -1279,6 +1327,12 @@ function CanvasEditor({ id }: { id: string }) {
                   ))}
                 </div>
               )}
+              {selectedMediaSkill && <div className="generation-settings skill-media-settings" role="group" aria-label={`${selectedMediaSkill.name} settings`}>
+                <label>Model<select aria-label="Media skill model" value={skillMediaOptions.model || ""} onChange={event => setSkillMediaOptions(current => ({ ...current, model: event.target.value || undefined }))}><option value="">{providers.find(provider => provider.kind === selectedMediaSkill.execution)?.defaultModel || "Configure provider"}</option>{providers.find(provider => provider.kind === selectedMediaSkill.execution)?.models.map(model => <option key={model} value={model}>{model}</option>)}</select></label>
+                <label>Ratio<select aria-label="Media skill aspect ratio" value={skillMediaOptions.aspectRatio} onChange={event => setSkillMediaOptions(current => ({ ...current, aspectRatio: event.target.value as StudioGenerationOptions["aspectRatio"] }))}>{["1:1", "16:9", "9:16", "4:3", "3:4"].map(ratio => <option key={ratio}>{ratio}</option>)}</select></label>
+                <label>Size<select aria-label="Media skill resolution" value={skillMediaOptions.resolution} onChange={event => setSkillMediaOptions(current => ({ ...current, resolution: event.target.value as StudioGenerationOptions["resolution"] }))}>{(selectedMediaSkill.execution === "video" ? ["720p", "1080p"] : ["1K", "2K"]).map(size => <option key={size}>{size}</option>)}</select></label>
+                {selectedMediaSkill.execution === "video" ? <label>Length<select aria-label="Media skill duration" value={skillMediaOptions.duration} onChange={event => setSkillMediaOptions(current => ({ ...current, duration: Number(event.target.value) }))}>{[5, 10, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}s</option>)}</select></label> : <label>Results<select aria-label="Media skill candidate count" value={skillMediaOptions.count} onChange={event => setSkillMediaOptions(current => ({ ...current, count: Number(event.target.value) }))}>{[1, 2, 3, 4].map(count => <option key={count}>{count}</option>)}</select></label>}
+              </div>}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

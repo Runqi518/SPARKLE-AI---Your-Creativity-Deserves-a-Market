@@ -2,6 +2,8 @@
 
 Sparkle's studio backend supports independently configured text, image and video providers. It does not fall back to Moyu, legacy environment variables, fake assets, or simulated success. It returns **candidates**, never writes a result into a canvas, and supports `projectId: "demo"` without creating a project.
 
+The Studio skills panel exposes Image Generation and Video Generation as direct media operations. Run one media skill at a time, choose a configured model and settings, and optionally reference existing canvas nodes. The client creates a linked image or video node and submits it through `POST /api/studio/generations` with `mediaSkillId`. The server validates that the skill matches the node kind, applies the corresponding production guidance from its `SKILL.md`, persists the job, and returns candidates for explicit review and application. Other standalone skills remain text workflows; media skills cannot be attached to text-only agent runs.
+
 ## Setup
 
 Edit the new `.env.local` configuration and restart Next. Existing `.env` credentials are not copied or used by these studio routes. `.env.example` lists the portable configuration; `.env.local` contains additional comments. Never use `NEXT_PUBLIC_` for provider configuration.

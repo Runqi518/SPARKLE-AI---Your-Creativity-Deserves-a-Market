@@ -17,6 +17,7 @@ export const StudioGenerationRequestSchema = z.object({
   nodeId: z.string().min(1).max(160),
   snapshot: CanvasSnapshotSchema,
   options: StudioGenerationOptionsSchema,
+  mediaSkillId: z.enum(["image-generation", "video-generation"]).optional(),
 });
 export type StudioGenerationRequest = z.infer<typeof StudioGenerationRequestSchema>;
 export type GenerationCandidate = { id: string; kind: GenerationKind; content?: string; url?: string };

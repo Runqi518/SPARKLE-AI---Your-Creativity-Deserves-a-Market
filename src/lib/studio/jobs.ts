@@ -9,6 +9,7 @@ import { validateReference } from "./assets";
 import { StudioError } from "./http";
 import { pollVideo, submitGeneration } from "./providers";
 import { withActor } from "../actor";
+import { loadStandaloneSkill } from "./skill-loader";
 
 type JobRow = {
   id: string; requestId: string; inputHash: string; projectId: string; nodeId: string;
@@ -103,7 +104,15 @@ export async function runGeneration(id: string, prepared: PreparedInput, config:
       where: { id, status: "queued", submissionDeadline: { [Op.gt]: now }, deadline: { [Op.gt]: now } },
     });
     if (!claimed) return;
-    const result = await submitGeneration(config, { prompt: prepared.prompt, images: prepared.images, videos: prepared.videos, options: prepared.input.options });
+    let prompt = prepared.prompt;
+    if (prepared.input.mediaSkillId) {
+      const skill = await loadStandaloneSkill(prepared.input.mediaSkillId);
+      const section = (heading: string) => skill.split(`## ${heading}\n`)[1]?.split(/\n## /)[0]?.trim() || "";
+      const guidance = [section("Professional model"), section("Decision rules and constraints")].filter(Boolean).join("\n\n");
+      if (!guidance) throw new StudioError("Media skill instructions are unavailable.", 503);
+      prompt = `Create an actual ${prepared.kind} candidate for the following advertising brief. Apply these production constraints where the configured provider supports them. Do not render invented logos, packaging text or claims as approved brand assets.\n\n${guidance}\n\nAdvertising brief and upstream canvas context:\n${prepared.prompt}`;
+    }
+    const result = await submitGeneration(config, { prompt, images: prepared.images, videos: prepared.videos, options: prepared.input.options });
     await expireJobs(undefined, id);
     await StudioGeneration.update({
       status: result.providerJobId ? "running" : "succeeded", candidates: result.candidates,

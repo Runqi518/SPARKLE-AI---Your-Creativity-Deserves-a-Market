@@ -49,6 +49,7 @@ export function prepareInput(raw: unknown) {
   const kindOf = (data: Record<string, unknown>) => data.kind ?? data.nodeKind ?? data.type;
   const kind = kindOf(target.data);
   if (kind !== "text" && kind !== "image" && kind !== "video") throw new StudioError("Only text, image and video nodes can generate.");
+  if (input.mediaSkillId && input.mediaSkillId !== `${kind}-generation`) throw new StudioError("Media skill must match the selected image or video node.");
   const ancestors = new Set<string>();
   function collect(id: string) {
     for (const parent of parents.get(id)!) if (!ancestors.has(parent)) { ancestors.add(parent); collect(parent); }

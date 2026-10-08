@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const maxDuration = 180;
 const schema = z.object({ ...assistantInputFields,
   requestId: z.uuid().optional(), projectId: z.string().min(1).max(160).optional(),
-  skills: z.array(z.string().refine(name => skills.some(skill => skill.name === name), "Choose a supported skill.")).min(1).max(3),
+  skills: z.array(z.string().refine(name => skills.some(skill => skill.name === name && !["image-generation", "video-generation"].includes(skill.id)), "Choose a text skill; media generation uses the canvas generation workflow.")).min(1).max(3),
 }).strict();
 async function POSTHandler(request: Request) {
   try {

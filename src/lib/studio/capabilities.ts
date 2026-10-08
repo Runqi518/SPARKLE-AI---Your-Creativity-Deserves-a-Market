@@ -51,6 +51,8 @@ export const skills = [
   { id: "consistency", name: "Consistency", role: "Manage visual identity and state continuity across generated shots." },
   { id: "creative-quality", name: "Creative Quality", role: "Evaluate clarity, relevance, originality and production feasibility." },
   { id: "generation-quality", name: "Generation Quality", role: "Inspect actual generated media for identity, motion and temporal defects." },
+  { id: "image-generation", name: "Image Generation", role: "Generate image candidates from a brief and approved references for review on the canvas." },
+  { id: "video-generation", name: "Video Generation", role: "Generate a shot-level video candidate from a brief and approved references for review on the canvas." },
   { id: "commercial-ad-strategy", name: "Commercial Ad Strategy", role: "Turn a business objective and audience tension into a defensible ad proposition and creative brief." },
   { id: "brand-strategy", name: "Brand Strategy", role: "Define usable brand cues, message hierarchy and claim boundaries for a campaign." },
   { id: "product-launch", name: "Product Launch", role: "Plan a launch narrative with proof, reveal, adoption barrier and channel roles." },

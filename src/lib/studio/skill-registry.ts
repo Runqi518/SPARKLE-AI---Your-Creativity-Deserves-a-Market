@@ -14,13 +14,14 @@ export type SkillMetadata = {
   conflicts: StudioSkillId[];
   priority: number;
   featured: boolean;
+  execution: "text" | "image" | "video";
 };
 
 const allAgents = agents.map(agent => agent.id);
 const director: StudioAgentId[] = ["creative-director", "scriptwriter", "product-visual-designer", "storyboard-designer"];
 const creative: StudioAgentId[] = ["creative-director", "scriptwriter", "storyboard-designer", "final-editor"];
 
-const curated: Partial<Record<StudioSkillId, Omit<SkillMetadata, "id" | "name" | "description" | "dependencies" | "conflicts" | "featured">>> = {
+const curated: Partial<Record<StudioSkillId, Omit<SkillMetadata, "id" | "name" | "description" | "dependencies" | "conflicts" | "featured" | "execution">>> = {
   "consumer-insight": { category: "strategy", trigger: "Audience motivation is uncertain or needs evidence before concepting.", compatibleAgents: ["creative-director", "scriptwriter"], inputs: ["Audience evidence", "Purchase context", "Product truth"], outputs: ["Insight card", "Creative implication", "Validation plan"], priority: 88 },
   "platform-strategy": { category: "strategy", trigger: "A campaign must be designed for named placements.", compatibleAgents: creative, inputs: ["Placements", "Objective", "Current platform specifications"], outputs: ["Placement strategy", "Version matrix", "Spec checks"], priority: 70 },
   "performance-creative": { category: "strategy", trigger: "Response data or a testable performance brief is available.", compatibleAgents: ["creative-director", "scriptwriter", "final-editor"], inputs: ["Baseline creative", "Metric definitions", "Audience"], outputs: ["Creative hypotheses", "Variant plan", "Decision rule"], priority: 72 },
@@ -29,6 +30,8 @@ const curated: Partial<Record<StudioSkillId, Omit<SkillMetadata, "id" | "name" |
   "consistency": { category: "production", trigger: "A multi-shot campaign needs identity and state continuity.", compatibleAgents: ["product-visual-designer", "character-designer", "scene-designer", "storyboard-designer", "final-editor"], inputs: ["Canonical references", "Shot states"], outputs: ["Continuity ledger", "Correction plan"], priority: 65 },
   "creative-quality": { category: "evaluation", trigger: "A concept or cut needs a structured creative judgment.", compatibleAgents: ["creative-director", "scriptwriter", "storyboard-designer", "final-editor"], inputs: ["Brief", "Concept or cut", "Product proof"], outputs: ["Scored review", "Prioritized corrections"], priority: 68 },
   "generation-quality": { category: "evaluation", trigger: "Actual generated media is available for inspection.", compatibleAgents: ["product-visual-designer", "character-designer", "scene-designer", "storyboard-designer", "final-editor"], inputs: ["Generated media", "Shot intent", "Canonical references"], outputs: ["Timecoded QC scorecard", "Repair recommendation"], priority: 66 },
+  "image-generation": { category: "production", trigger: "An approved image brief needs actual image candidates.", compatibleAgents: [], inputs: ["Image brief", "Approved references", "Aspect ratio", "Model"], outputs: ["Image candidates on canvas", "Review decision"], priority: 70 },
+  "video-generation": { category: "production", trigger: "An approved shot brief needs an actual video candidate.", compatibleAgents: [], inputs: ["Shot brief", "Approved references", "Duration", "Aspect ratio", "Model"], outputs: ["Video candidate on canvas", "Review decision"], priority: 70 },
   "commercial-ad-strategy": { category: "strategy", trigger: "A campaign needs a strategic brief or a defensible creative territory.", compatibleAgents: allAgents, inputs: ["Objective", "Audience tension", "Product truth", "Evidence", "Channel"], outputs: ["Strategy chain", "Territory comparison", "Creative brief", "Learning agenda"], priority: 90 },
   "brand-strategy": { category: "strategy", trigger: "The team needs coherent brand cues, message hierarchy and claim boundaries.", compatibleAgents: allAgents, inputs: ["Brand materials", "Product facts", "Approved claims"], outputs: ["Brand cue inventory", "Message hierarchy", "Claims ledger"], priority: 80 },
   "product-launch": { category: "strategy", trigger: "The campaign introduces a new product, variant or feature.", compatibleAgents: allAgents, inputs: ["Product change", "Audience", "Adoption barrier", "Proof", "Launch plan"], outputs: ["Launch angle", "Reveal sequence", "Channel matrix", "Measurement plan"], priority: 75 },
@@ -65,6 +68,7 @@ export const skillRegistry: SkillMetadata[] = skills.map(skill => {
     outputs: details?.outputs || established?.outputs || ["Editable workflow deliverable"],
     dependencies: [], conflicts: [], priority: details?.priority || 40,
     featured: Boolean(details),
+    execution: skill.id === "image-generation" ? "image" : skill.id === "video-generation" ? "video" : "text",
   };
 });
 

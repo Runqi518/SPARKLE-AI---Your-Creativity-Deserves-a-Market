@@ -15,6 +15,7 @@ export type StudioData = Record<string, unknown> & {
   track?: string;
   prompt?: string;
   generationOptions?: StudioGenerationOptions;
+  mediaSkillId?: "image-generation" | "video-generation";
   jobId?: string;
   generationStatus?: "queued" | "running" | "succeeded" | "failed";
   generationError?: string;

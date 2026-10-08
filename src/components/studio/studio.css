@@ -1191,6 +1191,11 @@
   height: 31px;
   text-overflow: ellipsis;
 }
+.skill-media-settings {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+}
 .generation-node .generate-submit {
   display: inline-flex;
   align-items: center;

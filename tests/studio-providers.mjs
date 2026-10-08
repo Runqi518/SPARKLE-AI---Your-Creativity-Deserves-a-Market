@@ -244,6 +244,22 @@ try {
       assert.equal((await readFile(path.join(scratch, "data", image.candidates[0].url))).toString("base64"), png);
       mode = "invalid-png"; assert.equal((await generate(input("image"))).status, "failed"); mode = "normal";
     });
+    await t.test("media skills submit real image and video jobs with skill guidance", async () => {
+      const invalid = { ...input("text"), mediaSkillId: "image-generation" };
+      const before = calls.length;
+      await post(invalid, 400);
+      assert.equal(calls.length, before);
+      const image = await generate({ ...input("image"), mediaSkillId: "image-generation" });
+      assert.equal(image.status, "succeeded");
+      assert.equal(image.kind, "image");
+      assert.match(calls.at(-1).payload.prompt, /Separate exploratory style frames/);
+      mode = "video-sync";
+      const video = await generate({ ...input("video"), mediaSkillId: "video-generation" });
+      assert.equal(video.status, "succeeded");
+      assert.equal(video.kind, "video");
+      assert.match(calls.at(-1).payload.prompt, /Video generation must be shot-specific/);
+      mode = "normal";
+    });
     await t.test("async video ID persists, concurrent polls dedupe and recovered job completes", async () => {
       pollState = "running";
       const { job } = await post(input("video")); await flush();
@@ -340,14 +356,15 @@ try {
     });
     await t.test("all skill workflows are available and their full instructions reach the text provider", async () => {
       const catalog = await json(await skillCatalog.GET());
-      assert.equal(catalog.skills.length, 27);
-      assert.equal(new Set(catalog.skills.map(skill => skill.id)).size, 27);
+      assert.equal(catalog.skills.length, 29);
+      assert.equal(new Set(catalog.skills.map(skill => skill.id)).size, 29);
       for (const skill of catalog.skills) {
         assert(skill.id && skill.name && skill.description && skill.category && skill.trigger);
-        assert(skill.inputs.length >= 2 && skill.outputs.length >= 1 && skill.compatibleAgents.length);
+        assert(skill.inputs.length >= 2 && skill.outputs.length >= 1);
+        assert(skill.execution === "text" ? skill.compatibleAgents.length : skill.compatibleAgents.length === 0);
         assert(Array.isArray(skill.dependencies) && Array.isArray(skill.conflicts) && Number.isInteger(skill.priority));
       }
-      for (const skill of catalog.skills) {
+      for (const skill of catalog.skills.filter(skill => skill.execution === "text")) {
         await json(await skillRunner.POST(req({ prompt: "Use the selected workflow to plan my product ad.", skills: [skill.name] })));
         const system = calls.at(-1).payload.messages[0].content;
         assert(system.includes(`Skill: ${skill.name} (${skill.id})`));
@@ -357,6 +374,9 @@ try {
         assert(!system.includes("## Sources and applied heuristics"));
         assert(!/https?:\/\/|\[[A-E]\d+\]/.test(system));
       }
+      const beforeMedia = calls.length;
+      for (const skill of catalog.skills.filter(skill => skill.execution !== "text")) await json(await skillRunner.POST(req({ prompt: "Generate an ad", skills: [skill.name] })), 400);
+      assert.equal(calls.length, beforeMedia);
       const input = { prompt: "Use the selected workflows to plan my product ad.", skills: ["Commercial Ad Strategy", "UGC Ad Writer", "Brand Strategy"] };
       await json(await skillRunner.POST(req(input)));
       const system = calls.at(-1).payload.messages[0].content;
