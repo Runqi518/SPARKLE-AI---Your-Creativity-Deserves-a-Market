@@ -6,7 +6,7 @@ The Studio skills panel exposes Image Generation and Video Generation as direct 
 
 ## Setup
 
-Edit the new `.env.local` configuration and restart Next. Existing `.env` credentials are not copied or used by these studio routes. `.env.example` lists the portable configuration; `.env.local` contains additional comments. Never use `NEXT_PUBLIC_` for provider configuration.
+For media-only setup, copy `.env.local.example` to `.env.local`, fill in the selected providers' values, and restart Next. Keep `.env.local` out of Git; the committed example deliberately has empty API keys. `.env.example` lists every supported option. Existing `.env` credentials are not copied or used by these studio routes. Never use `NEXT_PUBLIC_` for provider configuration.
 
 For each desired kind, supply `SPARKLE_TEXT_BASE_URL`, `SPARKLE_TEXT_API_KEY`, `SPARKLE_TEXT_MODEL`, or the equivalent `SPARKLE_IMAGE_*` / `SPARKLE_VIDEO_*` variables. All three are required; a provider with missing/invalid configuration is unavailable. `MODELS` is an optional comma-separated model allowlist; `MODEL` is always included. There is no dynamic model discovery or provider network call from the providers route.
 
