@@ -1,15 +1,5 @@
 # Sparkle · AI Creative Marketing Studio
 
-See [Backend operations](docs/backend-readiness.md) for runtime, database, backup/restore and API integration status. The product plans below do not imply that every capability is already available.
-
-> **Boundless ideas. Tangible growth.**
-
-**Sparkle is an AI-native infinite canvas that takes creative work from first idea to market-ready monetization assets.**
-
-Starting with an idea, Sparkle takes assets through **generation**, **composition** and **monetization** to create advertising content ready for distribution, trade and growth.
-
-![Sparkle Hero UI](public/hero-v2.png)
-
 ## Contents
 
 1. [Positioning](#1-positioning)
