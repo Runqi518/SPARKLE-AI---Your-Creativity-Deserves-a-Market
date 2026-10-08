@@ -18,14 +18,6 @@
 
 ## 2. Workflow
 
-```mermaid
-flowchart LR
-    A[Describe an idea] --> B[Generate assets]
-    B --> C[Compose on canvas]
-    C --> D[Monetize]
-    D --> E[Performance feedback]
-```
-
 ### Generate
 
 Describe an idea to create images and videos. Support text-to-image, text-to-video and reference-based creation.
