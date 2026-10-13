@@ -1,0 +1,11 @@
+# Presentation choice: language totals focus on Python sources.
+# Existing TS/JS frontend AND backend remain part of this mixed-language project.
+# See python_backend/README.md. Files are not reclassified or hidden in diffs.
+*.ts linguist-detectable=false
+*.tsx linguist-detectable=false
+*.js linguist-detectable=false
+*.jsx linguist-detectable=false
+*.mjs linguist-detectable=false
+*.cjs linguist-detectable=false
+*.css linguist-detectable=false
+*.html linguist-detectable=false
